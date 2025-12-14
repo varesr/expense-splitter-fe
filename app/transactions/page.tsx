@@ -62,7 +62,7 @@ export default function TransactionsPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center p-8 md:p-24">
-      <div className="w-full max-w-4xl">
+      <div className="w-full max-w-7xl">
         <div className="mb-8">
           <Link
             href="/"
