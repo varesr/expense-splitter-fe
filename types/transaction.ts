@@ -2,6 +2,9 @@
  * Transaction data types based on Swagger API definition
  */
 
+/** Options for who paid for a transaction */
+export type PaidBy = 'Roland' | 'Split' | 'Chris';
+
 export interface Transaction {
   /** Transaction date in DD/MM/YYYY format */
   date: string;

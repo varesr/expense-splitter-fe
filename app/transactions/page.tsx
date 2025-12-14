@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { TransactionFilterForm } from '@/components/features/transaction-filter-form';
+import { ToggleButtonGroup } from '@/components/ui/toggle-button-group';
 import { useTransactions } from '@/hooks/use-transactions';
+import { PaidBy } from '@/types/transaction';
 import Link from 'next/link';
 
 interface FilterData {
@@ -12,6 +14,7 @@ interface FilterData {
 
 export default function TransactionsPage() {
   const [selectedFilter, setSelectedFilter] = useState<FilterData | null>(null);
+  const [paidBySelections, setPaidBySelections] = useState<Record<string, PaidBy>>({});
 
   const {
     data: transactions,
@@ -25,6 +28,21 @@ export default function TransactionsPage() {
 
   const handleFilterSubmit = (data: FilterData) => {
     setSelectedFilter(data);
+  };
+
+  const getTransactionKey = (index: number) => {
+    const transaction = transactions?.[index];
+    return transaction ? `${transaction.date}-${transaction.accountNumber}-${index}` : `${index}`;
+  };
+
+  const handlePaidByChange = (index: number, value: PaidBy) => {
+    const key = getTransactionKey(index);
+    setPaidBySelections((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const getPaidByValue = (index: number): PaidBy => {
+    const key = getTransactionKey(index);
+    return paidBySelections[key] || 'Split';
   };
 
   const monthNames = [
@@ -108,6 +126,9 @@ export default function TransactionsPage() {
                           <th className="px-6 py-3 text-right text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">
                             Amount
                           </th>
+                          <th className="px-6 py-3 text-center text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">
+                            Paid By
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="bg-white dark:bg-stone-800 divide-y divide-stone-200 dark:divide-stone-700">
@@ -139,13 +160,19 @@ export default function TransactionsPage() {
                                 £{Math.abs(transaction.amount).toFixed(2)}
                               </span>
                             </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                              <ToggleButtonGroup
+                                value={getPaidByValue(index)}
+                                onChange={(value) => handlePaidByChange(index, value)}
+                              />
+                            </td>
                           </tr>
                         ))}
                       </tbody>
                       <tfoot className="bg-stone-50 dark:bg-stone-900">
                         <tr>
                           <td
-                            colSpan={4}
+                            colSpan={5}
                             className="px-6 py-4 text-sm font-semibold text-stone-900 dark:text-stone-100 text-right"
                           >
                             Total:
@@ -164,6 +191,7 @@ export default function TransactionsPage() {
                               ).toFixed(2)}
                             </span>
                           </td>
+                          <td></td>
                         </tr>
                       </tfoot>
                     </table>
