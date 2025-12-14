@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { TransactionFilterForm } from './transaction-filter-form';
 
@@ -18,7 +18,7 @@ describe('TransactionFilterForm', () => {
     expect(screen.getByRole('button', { name: /apply filter/i })).toBeInTheDocument();
   });
 
-  it('calls onSubmit with selected values when form is submitted', () => {
+  it('calls onSubmit with selected values when form is submitted', async () => {
     const onSubmit = vi.fn();
     render(<TransactionFilterForm onSubmit={onSubmit} />);
 
@@ -30,9 +30,11 @@ describe('TransactionFilterForm', () => {
     fireEvent.change(monthSelect, { target: { value: '6' } });
     fireEvent.click(submitButton);
 
-    expect(onSubmit).toHaveBeenCalledWith({
-      year: 2024,
-      month: 6,
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        { year: 2024, month: 6 },
+        expect.anything()
+      );
     });
   });
 });
