@@ -7,6 +7,19 @@ import { useTransactions } from '@/hooks/use-transactions';
 import { PaidBy } from '@/types/transaction';
 import Link from 'next/link';
 
+/**
+ * Formats a date string from DD/MM/YYYY to "Mon DD/MM/YYYY" format
+ * @param dateString - Date in DD/MM/YYYY format
+ * @returns Formatted date with abbreviated day prefix
+ */
+function formatDateWithDay(dateString: string): string {
+  const [day, month, year] = dateString.split('/').map(Number);
+  const date = new Date(year, month - 1, day);
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayName = dayNames[date.getDay()];
+  return `${dayName} ${dateString}`;
+}
+
 interface FilterData {
   year: number;
   month: number;
@@ -168,7 +181,7 @@ export default function TransactionsPage() {
                               className="hover:bg-stone-50 dark:hover:bg-stone-700"
                             >
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900 dark:text-stone-100">
-                                {transaction.date}
+                                {formatDateWithDay(transaction.date)}
                               </td>
                               <td className="px-6 py-4 text-sm text-stone-900 dark:text-stone-100">
                                 {transaction.description}

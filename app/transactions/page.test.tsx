@@ -54,6 +54,62 @@ const mockTransactionsData: Transaction[] = [
   },
 ];
 
+describe('TransactionsPage Date Formatting', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('displays dates with abbreviated day prefix', async () => {
+    mockedUseTransactions.mockReturnValue({
+      data: [
+        {
+          date: '15/12/2025', // Monday
+          description: 'TEST PURCHASE',
+          cardMember: 'Roland',
+          accountNumber: '-1234',
+          amount: -50.00,
+        },
+      ],
+      isLoading: false,
+      error: null,
+      isSuccess: true,
+      isError: false,
+      isPending: false,
+      isFetching: false,
+      isRefetching: false,
+      fetchStatus: 'idle',
+      status: 'success',
+      refetch: vi.fn(),
+      dataUpdatedAt: Date.now(),
+      errorUpdatedAt: 0,
+      failureCount: 0,
+      failureReason: null,
+      errorUpdateCount: 0,
+      isFetched: true,
+      isFetchedAfterMount: true,
+      isInitialLoading: false,
+      isLoadingError: false,
+      isPaused: false,
+      isPlaceholderData: false,
+      isRefetchError: false,
+      isStale: false,
+      promise: Promise.resolve([]),
+    } as ReturnType<typeof useTransactions>);
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+
+    // Submit the filter form
+    fireEvent.change(screen.getByLabelText('Year'), { target: { value: '2025' } });
+    fireEvent.change(screen.getByLabelText('Month'), { target: { value: '12' } });
+    fireEvent.click(screen.getByRole('button', { name: /apply filter/i }));
+
+    await waitFor(() => {
+      // 15/12/2025 is a Monday
+      expect(screen.getByText('Mon 15/12/2025')).toBeInTheDocument();
+    });
+  });
+});
+
 describe('TransactionsPage Summary Section', () => {
   beforeEach(() => {
     vi.resetAllMocks();
