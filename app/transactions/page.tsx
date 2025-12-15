@@ -42,7 +42,7 @@ export default function TransactionsPage() {
 
   const getPaidByValue = (index: number): PaidBy => {
     const key = getTransactionKey(index);
-    return paidBySelections[key] || 'Split';
+    return paidBySelections[key] || 'Roland';
   };
 
   const monthNames = [
