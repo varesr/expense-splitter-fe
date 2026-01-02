@@ -43,12 +43,10 @@ export function TransactionFilterForm({ onSubmit }: TransactionFilterFormProps) 
   ];
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="w-full max-w-md">
-      <div className="bg-white dark:bg-stone-800 rounded-lg shadow-md p-6 space-y-6">
-        <h2 className="text-2xl font-bold text-center text-stone-900 dark:text-stone-50">Filter Transactions</h2>
-
-        <div className="space-y-4">
-          <div>
+    <form onSubmit={handleSubmit(onSubmit)} className="w-full max-w-4xl">
+      <div className="bg-white dark:bg-stone-800 rounded-lg shadow-md p-6">
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="flex-1 min-w-[120px]">
             <label
               htmlFor="year"
               className="block text-sm font-medium mb-2 text-stone-700 dark:text-stone-300"
@@ -70,11 +68,11 @@ export function TransactionFilterForm({ onSubmit }: TransactionFilterFormProps) 
               ))}
             </select>
             {errors.year && (
-              <span className="text-red-500 text-sm mt-1">{errors.year.message}</span>
+              <span className="text-red-500 text-sm mt-1 block">{errors.year.message}</span>
             )}
           </div>
 
-          <div>
+          <div className="flex-1 min-w-[140px]">
             <label
               htmlFor="month"
               className="block text-sm font-medium mb-2 text-stone-700 dark:text-stone-300"
@@ -96,17 +94,17 @@ export function TransactionFilterForm({ onSubmit }: TransactionFilterFormProps) 
               ))}
             </select>
             {errors.month && (
-              <span className="text-red-500 text-sm mt-1">{errors.month.message}</span>
+              <span className="text-red-500 text-sm mt-1 block">{errors.month.message}</span>
             )}
           </div>
-        </div>
 
-        <button
-          type="submit"
-          className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2"
-        >
-          Apply Filter
-        </button>
+          <button
+            type="submit"
+            className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-6 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2"
+          >
+            Apply Filter
+          </button>
+        </div>
       </div>
     </form>
   );
