@@ -125,13 +125,59 @@ export default function TransactionsPage() {
                 <h3 className="text-lg font-semibold mb-2 text-stone-900 dark:text-stone-50">
                   Transactions for {monthNames[selectedFilter.month - 1]} {selectedFilter.year}
                 </h3>
-                <p className="text-stone-600 dark:text-stone-400 text-sm">
+                <p className="text-stone-600 dark:text-stone-400 text-sm mb-4">
                   {isLoading
                     ? 'Loading transactions...'
                     : transactions
                     ? `${transactions.length} transaction(s) found`
                     : 'No transactions'}
                 </p>
+                {!isLoading && transactions && transactions.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white/50 dark:bg-stone-800/50 rounded-lg p-4">
+                      <p className="text-sm text-stone-600 dark:text-stone-400 mb-1">
+                        Transactions Total
+                      </p>
+                      <p
+                        className={`text-2xl font-bold ${
+                          totals.total >= 0
+                            ? 'text-primary-600 dark:text-primary-400'
+                            : 'text-red-600 dark:text-red-400'
+                        }`}
+                      >
+                        £{Math.abs(totals.total).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="bg-white/50 dark:bg-stone-800/50 rounded-lg p-4">
+                      <p className="text-sm text-stone-600 dark:text-stone-400 mb-1">
+                        Roland&apos;s Total
+                      </p>
+                      <p
+                        className={`text-2xl font-bold ${
+                          totals.roland >= 0
+                            ? 'text-primary-600 dark:text-primary-400'
+                            : 'text-red-600 dark:text-red-400'
+                        }`}
+                      >
+                        £{Math.abs(totals.roland).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="bg-white/50 dark:bg-stone-800/50 rounded-lg p-4">
+                      <p className="text-sm text-stone-600 dark:text-stone-400 mb-1">
+                        Chris&apos;s Total
+                      </p>
+                      <p
+                        className={`text-2xl font-bold ${
+                          totals.chris >= 0
+                            ? 'text-primary-600 dark:text-primary-400'
+                            : 'text-red-600 dark:text-red-400'
+                        }`}
+                      >
+                        £{Math.abs(totals.chris).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {error && (
@@ -216,56 +262,6 @@ export default function TransactionsPage() {
                     </div>
                   </div>
 
-                  {/* Footer Summary Section */}
-                  <div className="mt-6 bg-white dark:bg-stone-800 rounded-lg shadow-md p-6">
-                    <h3 className="text-lg font-semibold mb-4 text-stone-900 dark:text-stone-50">
-                      Summary
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="bg-stone-50 dark:bg-stone-900 rounded-lg p-4">
-                        <p className="text-sm text-stone-600 dark:text-stone-400 mb-1">
-                          Transactions Total
-                        </p>
-                        <p
-                          className={`text-2xl font-bold ${
-                            totals.total >= 0
-                              ? 'text-primary-600 dark:text-primary-400'
-                              : 'text-red-600 dark:text-red-400'
-                          }`}
-                        >
-                          £{Math.abs(totals.total).toFixed(2)}
-                        </p>
-                      </div>
-                      <div className="bg-stone-50 dark:bg-stone-900 rounded-lg p-4">
-                        <p className="text-sm text-stone-600 dark:text-stone-400 mb-1">
-                          Roland&apos;s Total
-                        </p>
-                        <p
-                          className={`text-2xl font-bold ${
-                            totals.roland >= 0
-                              ? 'text-primary-600 dark:text-primary-400'
-                              : 'text-red-600 dark:text-red-400'
-                          }`}
-                        >
-                          £{Math.abs(totals.roland).toFixed(2)}
-                        </p>
-                      </div>
-                      <div className="bg-stone-50 dark:bg-stone-900 rounded-lg p-4">
-                        <p className="text-sm text-stone-600 dark:text-stone-400 mb-1">
-                          Chris&apos;s Total
-                        </p>
-                        <p
-                          className={`text-2xl font-bold ${
-                            totals.chris >= 0
-                              ? 'text-primary-600 dark:text-primary-400'
-                              : 'text-red-600 dark:text-red-400'
-                          }`}
-                        >
-                          £{Math.abs(totals.chris).toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
                 </>
               )}
 
