@@ -1,0 +1,13 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:7272
+    container_name: expense-splitter-fe
+    ports:
+      - "7273:7273"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped

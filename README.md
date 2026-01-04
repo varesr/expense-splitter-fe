@@ -9,6 +9,7 @@ A modern web application for tracking and splitting expenses, built with Next.js
 - [Technology Stack](#technology-stack)
 - [Prerequisites](#prerequisites)
 - [Getting Started](#getting-started)
+- [Docker](#docker)
 - [Project Structure](#project-structure)
 - [Development Workflow](#development-workflow)
 - [Testing](#testing)
@@ -123,6 +124,64 @@ npm start
 ```
 
 The optimized application will run on http://localhost:3000
+
+## Docker
+
+The application can be run in a Docker container for consistent deployment across environments.
+
+### Prerequisites
+
+- **Docker**: v20.10.0 or higher ([Download](https://www.docker.com/get-started))
+- **Docker Compose**: v2.0.0 or higher (included with Docker Desktop)
+
+### Quick Start
+
+Build and run the container:
+
+```bash
+docker compose build
+docker compose up -d
+```
+
+The application will be available at http://localhost:7273
+
+### Docker Commands
+
+| Command | Description |
+|---------|-------------|
+| `docker compose build` | Build the Docker image |
+| `docker compose up -d` | Start the container in detached mode |
+| `docker compose down` | Stop and remove the container |
+| `docker compose logs -f` | View container logs |
+| `docker compose restart` | Restart the container |
+
+### Configuration
+
+The Docker setup uses the following configuration:
+
+- **Port**: 7273 (configurable in `docker-compose.yml`)
+- **API URL**: Configured via `NEXT_PUBLIC_API_URL` build argument
+- **Base Image**: Node.js 20 Alpine (optimized for size)
+
+#### Connecting to Backend API
+
+By default, the container is configured to connect to a backend running on the host machine at port 7272. This uses `host.docker.internal` to resolve the host from within the container.
+
+To change the API URL, modify the `NEXT_PUBLIC_API_URL` argument in `docker-compose.yml`:
+
+```yaml
+args:
+  NEXT_PUBLIC_API_URL: http://your-api-url:port
+```
+
+### Docker Files
+
+| File | Description |
+|------|-------------|
+| `Dockerfile` | Multi-stage build configuration for production |
+| `docker-compose.yml` | Container orchestration configuration |
+| `.dockerignore` | Files excluded from Docker build context |
+| `.env.docker` | Docker-specific environment variables |
 
 ## Project Structure
 
