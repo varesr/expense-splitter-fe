@@ -29,6 +29,7 @@ describe('transactionService', () => {
           method: 'GET',
           headers: {
             Accept: 'application/json',
+            'ngrok-skip-browser-warning': 'true',
           },
         }
       );
@@ -97,6 +98,9 @@ describe('transactionService', () => {
       expect(result).toBe(healthMessage);
       expect(fetch).toHaveBeenCalledWith('http://localhost:8080/', {
         method: 'GET',
+        headers: {
+          'ngrok-skip-browser-warning': 'true',
+        },
       });
     });
 
