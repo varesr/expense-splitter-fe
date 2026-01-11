@@ -22,6 +22,7 @@ export const transactionService = {
         method: 'GET',
         headers: {
           Accept: 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       }
     );
@@ -44,6 +45,9 @@ export const transactionService = {
   async healthCheck(): Promise<string> {
     const response = await fetch(`${API_BASE_URL}/`, {
       method: 'GET',
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+      },
     });
 
     if (!response.ok) {
