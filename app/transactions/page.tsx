@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { TransactionFilterForm } from '@/components/features/transaction-filter-form';
 import { ToggleButtonGroup } from '@/components/ui/toggle-button-group';
 import { useTransactions } from '@/hooks/use-transactions';
+import { useExpenseSelections } from '@/hooks/use-expense-selections';
 import { PaidBy } from '@/types/transaction';
 import Link from 'next/link';
 
@@ -27,7 +28,6 @@ interface FilterData {
 
 export default function TransactionsPage() {
   const [selectedFilter, setSelectedFilter] = useState<FilterData | null>(null);
-  const [paidBySelections, setPaidBySelections] = useState<Record<string, PaidBy>>({});
 
   const {
     data: transactions,
@@ -39,23 +39,23 @@ export default function TransactionsPage() {
     !!selectedFilter
   );
 
+  const { getSelectionForTransaction, setSelectionForTransaction } = useExpenseSelections(transactions);
+
   const handleFilterSubmit = (data: FilterData) => {
     setSelectedFilter(data);
   };
 
-  const getTransactionKey = (index: number) => {
-    const transaction = transactions?.[index];
-    return transaction ? `${transaction.date}-${transaction.accountNumber}-${index}` : `${index}`;
-  };
-
   const handlePaidByChange = (index: number, value: PaidBy) => {
-    const key = getTransactionKey(index);
-    setPaidBySelections((prev) => ({ ...prev, [key]: value }));
+    const transaction = transactions?.[index];
+    if (transaction) {
+      setSelectionForTransaction(transaction, value);
+    }
   };
 
   const getPaidByValue = (index: number): PaidBy => {
-    const key = getTransactionKey(index);
-    return paidBySelections[key] || 'Roland';
+    const transaction = transactions?.[index];
+    if (!transaction) return 'Roland';
+    return getSelectionForTransaction(transaction);
   };
 
   const monthNames = [
@@ -82,10 +82,9 @@ export default function TransactionsPage() {
     let roland = 0;
     let chris = 0;
 
-    transactions.forEach((transaction, index) => {
+    transactions.forEach((transaction) => {
       const amount = transaction.amount;
-      const key = transaction ? `${transaction.date}-${transaction.accountNumber}-${index}` : `${index}`;
-      const paidBy = paidBySelections[key] || 'Roland';
+      const paidBy = getSelectionForTransaction(transaction);
 
       total += amount;
 
@@ -100,7 +99,7 @@ export default function TransactionsPage() {
     });
 
     return { total, roland, chris };
-  }, [transactions, paidBySelections]);
+  }, [transactions, getSelectionForTransaction]);
 
   return (
     <main className="flex min-h-screen flex-col items-center p-8 md:p-24">
