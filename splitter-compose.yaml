@@ -1,0 +1,35 @@
+services:
+  backend:
+    build:
+      context: ../expense-splitter/backend
+      dockerfile: Dockerfile
+    container_name: expense-splitter-be
+    ports:
+      - "7272:7272"
+    environment:
+      - PORT=7272
+      - CSV_DATA_DIRECTORY=/app/data
+    restart: unless-stopped
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: expense-splitter-fe
+    ports:
+      - "7273:7273"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: expense-splitter-ngrok
+    command: http host.docker.internal:7273
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_TOKEN}
+    ports:
+      - "4040:4040"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - frontend
+    restart: unless-stopped
