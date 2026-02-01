@@ -1,6 +1,6 @@
 import type { Transaction } from '@/types/transaction';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 /**
  * Service for interacting with the transactions API
