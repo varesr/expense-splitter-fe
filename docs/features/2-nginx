@@ -1,0 +1,4 @@
+When conteinarized and made publicly with ngrok backend application should be accessible via /api route
+Use nginx for routing
+Application is conteinerized with splitter-compose.yaml
+Backend docker file is in path /Users/rolandv/repositories/expense-splitter/backend
