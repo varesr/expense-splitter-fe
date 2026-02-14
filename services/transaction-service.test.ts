@@ -1,6 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { transactionService } from './transaction-service';
 import { mockTransactions, mockEmptyTransactions } from '@/tests/fixtures/transactions';
+
+const TEST_API_URL = 'http://localhost:8080';
+
+// The service reads process.env.NEXT_PUBLIC_API_URL at module level,
+// so we must set it before the module is imported.
+vi.hoisted(() => {
+  process.env.NEXT_PUBLIC_API_URL = 'http://localhost:8080';
+});
+
+// Import after env is set
+import { transactionService } from './transaction-service';
 
 describe('transactionService', () => {
   const originalFetch = global.fetch;
@@ -24,7 +34,7 @@ describe('transactionService', () => {
 
       expect(result).toEqual(mockTransactions);
       expect(fetch).toHaveBeenCalledWith(
-        'http://localhost:8080/transactions/2025/1',
+        `${TEST_API_URL}/transactions/2025/1`,
         {
           method: 'GET',
           headers: {
@@ -78,7 +88,7 @@ describe('transactionService', () => {
       await transactionService.getTransactionsByYearAndMonth(2024, 12);
 
       expect(fetch).toHaveBeenCalledWith(
-        'http://localhost:8080/transactions/2024/12',
+        `${TEST_API_URL}/transactions/2024/12`,
         expect.any(Object)
       );
     });
@@ -95,7 +105,7 @@ describe('transactionService', () => {
       const result = await transactionService.healthCheck();
 
       expect(result).toBe(healthMessage);
-      expect(fetch).toHaveBeenCalledWith('http://localhost:8080/', {
+      expect(fetch).toHaveBeenCalledWith(`${TEST_API_URL}/`, {
         method: 'GET',
       });
     });
