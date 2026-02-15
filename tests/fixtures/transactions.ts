@@ -10,6 +10,7 @@ export const mockTransactions: Transaction[] = [
     cardMember: 'John Doe',
     accountNumber: '-1234',
     amount: -125.50,
+    paidBy: null,
   },
   {
     date: '16/01/2025',
@@ -17,6 +18,7 @@ export const mockTransactions: Transaction[] = [
     cardMember: 'Jane Doe',
     accountNumber: '-5678',
     amount: -45.00,
+    paidBy: null,
   },
   {
     date: '17/01/2025',
@@ -24,6 +26,7 @@ export const mockTransactions: Transaction[] = [
     cardMember: 'John Doe',
     accountNumber: '-1234',
     amount: 500.00,
+    paidBy: null,
   },
 ];
 
@@ -36,5 +39,6 @@ export const mockSingleTransaction: Transaction[] = [
     cardMember: 'John Doe',
     accountNumber: '-1234',
     amount: -5.75,
+    paidBy: null,
   },
 ];

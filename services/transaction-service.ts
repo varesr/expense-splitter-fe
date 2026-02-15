@@ -1,4 +1,4 @@
-import type { Transaction } from '@/types/transaction';
+import type { Transaction, PaidTransactionRequest } from '@/types/transaction';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -22,6 +22,8 @@ export const transactionService = {
         method: 'GET',
         headers: {
           Accept: 'application/json',
+          'Cache-Control': 'no-cache, max-age=0, must-revalidate',
+          'Expires': '0'
         },
       }
     );
@@ -35,6 +37,29 @@ export const transactionService = {
 
     const data: Transaction[] = await response.json();
     return data;
+  },
+
+  /**
+   * Save who paid for a transaction
+   * @param key - Storage key identifying the transaction
+   * @param paidBy - Who paid for the transaction
+   */
+  async savePaidTransaction(key: string, paidBy: string): Promise<void> {
+    const body: PaidTransactionRequest = { key, paidBy };
+    const response = await fetch(`${API_BASE_URL}/transactions/paid`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      if (response.status === 400) {
+        throw new Error('Invalid paid transaction data');
+      }
+      throw new Error(`Failed to save paid transaction: ${response.statusText}`);
+    }
   },
 
   /**
