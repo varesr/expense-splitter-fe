@@ -1,44 +1,12 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   generateStorageKey,
   parseDateString,
   createIdentifierFromTransaction,
   isValidPaidBy,
-  saveSelection,
-  getSelection,
 } from './expense-selection-storage';
 
-// Mock localStorage
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
-  return {
-    getItem: vi.fn((key: string) => store[key] || null),
-    setItem: vi.fn((key: string, value: string) => {
-      store[key] = value;
-    }),
-    clear: vi.fn(() => {
-      store = {};
-    }),
-    removeItem: vi.fn((key: string) => {
-      delete store[key];
-    }),
-    key: vi.fn((index: number) => Object.keys(store)[index] || null),
-    get length() {
-      return Object.keys(store).length;
-    },
-  };
-})();
-
-Object.defineProperty(global, 'localStorage', {
-  value: localStorageMock,
-  writable: true,
-});
-
 describe('expense-selection-storage', () => {
-  beforeEach(() => {
-    localStorageMock.clear();
-    vi.clearAllMocks();
-  });
 
   describe('generateStorageKey', () => {
     it('generates correct key format', () => {
@@ -111,38 +79,4 @@ describe('expense-selection-storage', () => {
     });
   });
 
-  describe('saveSelection', () => {
-    it('saves selection to localStorage', () => {
-      const identifier = { year: 2025, month: 1, day: 15, amount: -100 };
-      saveSelection(identifier, 'Chris');
-
-      const key = generateStorageKey(identifier);
-      expect(localStorage.getItem(key)).toBe('Chris');
-    });
-  });
-
-  describe('getSelection', () => {
-    it('retrieves saved selection', () => {
-      const identifier = { year: 2025, month: 1, day: 15, amount: -100 };
-      saveSelection(identifier, 'Split');
-
-      const result = getSelection(identifier);
-      expect(result).toBe('Split');
-    });
-
-    it('returns null for non-existent key', () => {
-      const identifier = { year: 2025, month: 1, day: 15, amount: -100 };
-      const result = getSelection(identifier);
-      expect(result).toBeNull();
-    });
-
-    it('returns null for invalid stored value', () => {
-      const identifier = { year: 2025, month: 1, day: 15, amount: -100 };
-      const key = generateStorageKey(identifier);
-      localStorage.setItem(key, 'InvalidValue');
-
-      const result = getSelection(identifier);
-      expect(result).toBeNull();
-    });
-  });
 });

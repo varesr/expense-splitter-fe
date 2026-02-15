@@ -94,6 +94,54 @@ describe('transactionService', () => {
     });
   });
 
+  describe('savePaidTransaction', () => {
+    it('sends PUT request with correct body', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+      });
+
+      await transactionService.savePaidTransaction('expense-selection:2025:01:15:-100.00', 'Chris');
+
+      expect(fetch).toHaveBeenCalledWith(
+        `${TEST_API_URL}/transactions/paid`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            key: 'expense-selection:2025:01:15:-100.00',
+            paidBy: 'Chris',
+          }),
+        }
+      );
+    });
+
+    it('throws error on 400 response', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        statusText: 'Bad Request',
+      });
+
+      await expect(
+        transactionService.savePaidTransaction('bad-key', 'Chris')
+      ).rejects.toThrow('Invalid paid transaction data');
+    });
+
+    it('throws error on 500 response', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+      });
+
+      await expect(
+        transactionService.savePaidTransaction('expense-selection:2025:01:15:-100.00', 'Chris')
+      ).rejects.toThrow('Failed to save paid transaction: Internal Server Error');
+    });
+  });
+
   describe('healthCheck', () => {
     it('returns health status text on success', async () => {
       const healthMessage = 'OK';

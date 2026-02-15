@@ -110,14 +110,19 @@ const mockTransactionsData: Transaction[] = [
  * `getSelection` maps a transaction to a PaidBy value (defaults to 'Roland').
  */
 function setupExpenseSelectionsMock(
-  getSelection: (t: Transaction) => PaidBy = () => 'Roland'
+  getSelection: (t: Transaction) => PaidBy = () => 'Roland',
+  overrides: Partial<ReturnType<typeof useExpenseSelections>> = {}
 ) {
   const mockSetSelection = vi.fn();
+  const mockClearError = vi.fn();
   mockedUseExpenseSelections.mockReturnValue({
     getSelectionForTransaction: vi.fn(getSelection),
     setSelectionForTransaction: mockSetSelection,
+    error: null,
+    clearError: mockClearError,
+    ...overrides,
   });
-  return { mockSetSelection };
+  return { mockSetSelection, mockClearError };
 }
 
 /** Submits the filter form with year/month. */
@@ -280,5 +285,44 @@ describe('TransactionsPage Summary Section', () => {
     await waitFor(() => {
       expect(screen.queryByText('Transactions Total')).not.toBeInTheDocument();
     });
+  });
+});
+
+describe('TransactionsPage Save Error Toast', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('displays toast when save error occurs', () => {
+    setupExpenseSelectionsMock(() => 'Roland', {
+      error: 'Failed to save selection. Please try again.',
+    });
+    mockedUseTransactions.mockReturnValue(mockTransactionsReturn());
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(screen.getByText('Failed to save selection. Please try again.')).toBeInTheDocument();
+  });
+
+  it('does not display toast when there is no save error', () => {
+    setupExpenseSelectionsMock();
+    mockedUseTransactions.mockReturnValue(mockTransactionsReturn());
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('calls clearError when toast is dismissed', () => {
+    const { mockClearError } = setupExpenseSelectionsMock(() => 'Roland', {
+      error: 'Failed to save selection. Please try again.',
+    });
+    mockedUseTransactions.mockReturnValue(mockTransactionsReturn());
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+
+    fireEvent.click(screen.getByRole('button', { name: /dismiss/i }));
+    expect(mockClearError).toHaveBeenCalledOnce();
   });
 });

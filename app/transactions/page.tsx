@@ -6,6 +6,7 @@ import { ToggleButtonGroup } from '@/components/ui/toggle-button-group';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useExpenseSelections } from '@/hooks/use-expense-selections';
 import { PaidBy } from '@/types/transaction';
+import { Toast } from '@/components/ui/toast';
 import Link from 'next/link';
 
 /**
@@ -39,7 +40,12 @@ export default function TransactionsPage() {
     !!selectedFilter
   );
 
-  const { getSelectionForTransaction, setSelectionForTransaction } = useExpenseSelections(transactions);
+  const {
+    getSelectionForTransaction,
+    setSelectionForTransaction,
+    error: saveError,
+    clearError,
+  } = useExpenseSelections(transactions, selectedFilter?.year, selectedFilter?.month);
 
   const handleFilterSubmit = (data: FilterData) => {
     setSelectedFilter(data);
@@ -276,6 +282,7 @@ export default function TransactionsPage() {
           )}
         </div>
       </div>
+      {saveError && <Toast message={saveError} onDismiss={clearError} />}
     </main>
   );
 }
