@@ -22,6 +22,8 @@ export const transactionService = {
         method: 'GET',
         headers: {
           Accept: 'application/json',
+          'Cache-Control': 'no-cache, max-age=0, must-revalidate',
+          'Expires': '0'
         },
       }
     );
