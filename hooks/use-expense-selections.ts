@@ -1,77 +1,102 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { PaidBy, Transaction } from '@/types/transaction';
 import {
   createIdentifierFromTransaction,
   generateStorageKey,
-  saveSelection,
-  getSelection,
 } from '@/lib/expense-selection-storage';
+import { transactionService } from '@/services/transaction-service';
 
 interface UseExpenseSelectionsResult {
   /** Get the PaidBy value for a transaction */
   getSelectionForTransaction: (transaction: Transaction) => PaidBy;
-  /** Set the PaidBy value for a transaction (saves to localStorage) */
+  /** Set the PaidBy value for a transaction (saves via API) */
   setSelectionForTransaction: (transaction: Transaction, value: PaidBy) => void;
+  /** Error from the last save attempt */
+  error: string | null;
+  /** Clear the current error */
+  clearError: () => void;
 }
 
 /**
- * Hook for managing expense selections with localStorage persistence
+ * Hook for managing expense selections with backend API persistence.
+ *
+ * Reads paidBy from the transaction data returned by the API.
+ * Writes via PUT /api/transactions/paid with optimistic updates.
  *
  * @param transactions - Array of transactions for the current filter
+ * @param year - Current filter year (for cache invalidation)
+ * @param month - Current filter month (for cache invalidation)
  */
 export function useExpenseSelections(
-  transactions: Transaction[] | undefined
+  transactions: Transaction[] | undefined,
+  year?: number,
+  month?: number
 ): UseExpenseSelectionsResult {
-  // State to hold selections keyed by storage key
-  const [selections, setSelections] = useState<Record<string, PaidBy>>({});
+  const queryClient = useQueryClient();
+  const [error, setError] = useState<string | null>(null);
 
-  // Load selections from localStorage when transactions change
-  useEffect(() => {
-    if (!transactions || transactions.length === 0) {
-      setSelections({});
-      return;
-    }
+  const clearError = useCallback(() => setError(null), []);
 
-    const loadedSelections: Record<string, PaidBy> = {};
+  const mutation = useMutation({
+    mutationFn: ({ key, paidBy }: { key: string; paidBy: PaidBy }) =>
+      transactionService.savePaidTransaction(key, paidBy),
+    onMutate: async ({ key, paidBy }) => {
+      if (year === undefined || month === undefined) return;
 
-    transactions.forEach((transaction) => {
-      const identifier = createIdentifierFromTransaction(transaction.date, transaction.amount);
-      const key = generateStorageKey(identifier);
-      const savedValue = getSelection(identifier);
+      const queryKey = ['transactions', year, month];
+      await queryClient.cancelQueries({ queryKey });
 
-      if (savedValue) {
-        loadedSelections[key] = savedValue;
+      const previousTransactions = queryClient.getQueryData<Transaction[]>(queryKey);
+
+      queryClient.setQueryData<Transaction[]>(queryKey, (old) => {
+        if (!old) return old;
+        return old.map((t) => {
+          const identifier = createIdentifierFromTransaction(t.date, t.amount);
+          const txKey = generateStorageKey(identifier);
+          if (txKey === key) {
+            return { ...t, paidBy };
+          }
+          return t;
+        });
+      });
+
+      return { previousTransactions };
+    },
+    onError: (_err, _variables, context) => {
+      if (year !== undefined && month !== undefined && context?.previousTransactions) {
+        queryClient.setQueryData(
+          ['transactions', year, month],
+          context.previousTransactions
+        );
       }
-    });
-
-    setSelections(loadedSelections);
-  }, [transactions]);
+      setError('Failed to save selection. Please try again.');
+    },
+  });
 
   const getSelectionForTransaction = useCallback(
     (transaction: Transaction): PaidBy => {
-      const identifier = createIdentifierFromTransaction(transaction.date, transaction.amount);
-      const key = generateStorageKey(identifier);
-      return selections[key] || 'Roland';
+      if (transaction.paidBy) {
+        return transaction.paidBy;
+      }
+      return 'Roland';
     },
-    [selections]
+    []
   );
 
   const setSelectionForTransaction = useCallback(
     (transaction: Transaction, value: PaidBy): void => {
       const identifier = createIdentifierFromTransaction(transaction.date, transaction.amount);
       const key = generateStorageKey(identifier);
-
-      // Save to localStorage
-      saveSelection(identifier, value);
-
-      // Update state
-      setSelections((prev) => ({ ...prev, [key]: value }));
+      mutation.mutate({ key, paidBy: value });
     },
-    []
+    [mutation]
   );
 
   return {
     getSelectionForTransaction,
     setSelectionForTransaction,
+    error,
+    clearError,
   };
 }

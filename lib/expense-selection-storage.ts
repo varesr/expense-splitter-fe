@@ -50,34 +50,3 @@ export function isValidPaidBy(value: unknown): value is PaidBy {
   return value === 'Roland' || value === 'Split' || value === 'Chris';
 }
 
-/**
- * Saves a selection to localStorage
- */
-export function saveSelection(identifier: TransactionIdentifier, value: PaidBy): void {
-  if (typeof window === 'undefined') return;
-  const key = generateStorageKey(identifier);
-  try {
-    localStorage.setItem(key, value);
-  } catch (error) {
-    console.error('Failed to save expense selection:', error);
-  }
-}
-
-/**
- * Retrieves a selection from localStorage
- * Returns null if not found or invalid
- */
-export function getSelection(identifier: TransactionIdentifier): PaidBy | null {
-  if (typeof window === 'undefined') return null;
-  const key = generateStorageKey(identifier);
-  try {
-    const value = localStorage.getItem(key);
-    if (value && isValidPaidBy(value)) {
-      return value;
-    }
-    return null;
-  } catch (error) {
-    console.error('Failed to retrieve expense selection:', error);
-    return null;
-  }
-}

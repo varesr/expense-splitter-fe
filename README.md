@@ -21,6 +21,7 @@ A modern web application for tracking and splitting expenses, built with Next.js
 ## Features
 
 - **Transaction Management**: View and filter transactions by year and month
+- **Paid By Tracking**: Track who paid for each transaction (Roland, Chris, or Split) with backend API persistence and optimistic updates
 - **Type-Safe**: Full TypeScript support with strict mode enabled
 - **Modern UI**: Built with Tailwind CSS, responsive design with dark mode support
 - **Custom Theme**: Light backgrounds with dark green components for a professional appearance

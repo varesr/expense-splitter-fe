@@ -16,6 +16,15 @@ export interface Transaction {
   accountNumber: string;
   /** Transaction amount (can be positive or negative) */
   amount: number;
+  /** Who paid for this transaction (from backend API) */
+  paidBy?: PaidBy | null;
+}
+
+export interface PaidTransactionRequest {
+  /** Storage key identifying the transaction */
+  key: string;
+  /** Who paid for the transaction */
+  paidBy: string;
 }
 
 export interface TransactionResponse {
