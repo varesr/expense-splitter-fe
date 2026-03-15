@@ -44,3 +44,4 @@ cypress/screenshots/
 # claude
 CLAUDE.md
 screenshots
+.claude/settings.local.json

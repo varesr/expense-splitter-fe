@@ -1,0 +1,3 @@
+
+When calling any backend API, Basic auth header should be passed with the request
+Both username and password should be configurable with keys SPLITTER_USER and SPLITTER_PWD
