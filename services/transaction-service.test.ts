@@ -37,6 +37,7 @@ describe('transactionService', () => {
         `${TEST_API_URL}/transactions/2025/1`,
         {
           method: 'GET',
+          credentials: 'include',
           headers: {
             Accept: 'application/json',
             'Cache-Control': 'no-cache, max-age=0, must-revalidate',
@@ -108,6 +109,7 @@ describe('transactionService', () => {
         `${TEST_API_URL}/transactions/paid`,
         {
           method: 'PUT',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -157,6 +159,7 @@ describe('transactionService', () => {
       expect(result).toBe(healthMessage);
       expect(fetch).toHaveBeenCalledWith(`${TEST_API_URL}/`, {
         method: 'GET',
+        credentials: 'include',
       });
     });
 

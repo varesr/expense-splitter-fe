@@ -20,6 +20,7 @@ export const transactionService = {
       `${API_BASE_URL}/transactions/${year}/${month}`,
       {
         method: 'GET',
+        credentials: 'include',
         headers: {
           Accept: 'application/json',
           'Cache-Control': 'no-cache, max-age=0, must-revalidate',
@@ -48,6 +49,7 @@ export const transactionService = {
     const body: PaidTransactionRequest = { key, paidBy };
     const response = await fetch(`${API_BASE_URL}/transactions/paid`, {
       method: 'PUT',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -69,6 +71,7 @@ export const transactionService = {
   async healthCheck(): Promise<string> {
     const response = await fetch(`${API_BASE_URL}/`, {
       method: 'GET',
+      credentials: 'include',
     });
 
     if (!response.ok) {

@@ -20,6 +20,8 @@ A modern web application for tracking and splitting expenses, built with Next.js
 
 ## Features
 
+- **Authentication**: User/password login with JWT tokens stored in httpOnly cookies
+- **Route Protection**: Next.js middleware redirects unauthenticated users to login page
 - **Transaction Management**: View and filter transactions by year and month
 - **Paid By Tracking**: Track who paid for each transaction (Roland, Chris, or Split) with backend API persistence and optimistic updates
 - **Type-Safe**: Full TypeScript support with strict mode enabled
@@ -189,11 +191,14 @@ args:
 ```
 frontend/
 ├── app/                          # Next.js App Router
-│   ├── layout.tsx               # Root layout with providers
+│   ├── layout.tsx               # Root layout with providers and auth header
 │   ├── page.tsx                 # Home page
 │   ├── globals.css              # Global styles
+│   ├── login/                   # Login page
+│   │   └── page.tsx             # Login form with email/password
 │   └── transactions/            # Transactions feature
 │       └── page.tsx             # Transactions page
+├── middleware.ts                  # Next.js middleware for auth route protection
 │
 ├── components/                   # React components
 │   ├── ui/                      # Generic UI components (buttons, inputs)
