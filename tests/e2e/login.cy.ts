@@ -54,4 +54,29 @@ describe('Login Flow', () => {
     cy.wait('@loginRequest');
     cy.url().should('not.include', '/login');
   });
+
+  it('should display user name next to Sign Out after login', () => {
+    cy.intercept('POST', '**/auth/login', {
+      statusCode: 200,
+      body: { displayName: 'Test User' },
+      headers: {
+        'Set-Cookie': 'auth_status=1; Path=/; Max-Age=2592000',
+      },
+    }).as('loginRequest');
+
+    cy.intercept('GET', '**/auth/me', {
+      statusCode: 200,
+      body: { displayName: 'Test User' },
+    }).as('meRequest');
+
+    cy.visit('/login');
+    cy.get('input[type="email"]').type('test@example.com');
+    cy.get('input[type="password"]').type('password123!A');
+    cy.get('button[type="submit"]').click();
+
+    cy.wait('@loginRequest');
+    cy.url().should('not.include', '/login');
+    cy.contains('Test User').should('be.visible');
+    cy.contains('Sign Out').should('be.visible');
+  });
 });

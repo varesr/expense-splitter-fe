@@ -21,6 +21,7 @@ A modern web application for tracking and splitting expenses, built with Next.js
 ## Features
 
 - **Authentication**: User/password login with JWT tokens stored in httpOnly cookies
+- **User Display**: Logged-in user's display name shown next to the Sign Out button on all authenticated pages
 - **Route Protection**: Next.js middleware redirects unauthenticated users to login page
 - **Transaction Management**: View and filter transactions by year and month
 - **Paid By Tracking**: Track who paid for each transaction (Roland, Chris, or Split) with backend API persistence and optimistic updates
