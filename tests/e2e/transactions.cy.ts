@@ -1,5 +1,12 @@
 describe('Transactions Page', () => {
   beforeEach(() => {
+    cy.setCookie('auth_status', '1');
+
+    cy.intercept('GET', '**/auth/me', {
+      statusCode: 200,
+      body: { displayName: 'Test User' },
+    }).as('meRequest');
+
     cy.visit('/transactions');
   });
 
@@ -13,6 +20,11 @@ describe('Transactions Page', () => {
   });
 
   it('allows user to select year and month and apply filter', () => {
+    cy.intercept('GET', '**/transactions*', {
+      statusCode: 200,
+      body: [],
+    }).as('transactionsRequest');
+
     // Select year
     cy.get('#year').select('2024');
 
@@ -22,10 +34,8 @@ describe('Transactions Page', () => {
     // Click apply button
     cy.contains('button', 'Apply Filter').click();
 
-    // Verify selected filter is displayed
-    cy.contains('Selected Filter').should('be.visible');
-    cy.contains('Year: 2024').should('be.visible');
-    cy.contains('Month: June').should('be.visible');
+    // Verify the filter results heading is displayed
+    cy.contains('Transactions for June 2024').should('be.visible');
   });
 
   it('has a back to home link', () => {
