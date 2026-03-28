@@ -37,4 +37,29 @@ describe('TransactionFilterForm', () => {
       );
     });
   });
+
+  it('renders Add Transaction button when onAddTransaction is provided', () => {
+    const onSubmit = vi.fn();
+    const onAddTransaction = vi.fn();
+    render(<TransactionFilterForm onSubmit={onSubmit} onAddTransaction={onAddTransaction} />);
+
+    expect(screen.getByRole('button', { name: /add transaction/i })).toBeInTheDocument();
+  });
+
+  it('calls onAddTransaction when Add Transaction button is clicked', () => {
+    const onSubmit = vi.fn();
+    const onAddTransaction = vi.fn();
+    render(<TransactionFilterForm onSubmit={onSubmit} onAddTransaction={onAddTransaction} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /add transaction/i }));
+
+    expect(onAddTransaction).toHaveBeenCalledOnce();
+  });
+
+  it('does not render Add Transaction button when onAddTransaction is not provided', () => {
+    const onSubmit = vi.fn();
+    render(<TransactionFilterForm onSubmit={onSubmit} />);
+
+    expect(screen.queryByRole('button', { name: /add transaction/i })).not.toBeInTheDocument();
+  });
 });
