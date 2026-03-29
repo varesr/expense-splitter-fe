@@ -69,6 +69,31 @@ describe('LoginPage', () => {
     });
   });
 
+  it('populates currentUser query cache on successful login', async () => {
+    mockedLogin.mockResolvedValue({ displayName: 'Test User' });
+    const user = userEvent.setup();
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    render(<LoginPage />, {
+      wrapper: ({ children }: { children: React.ReactNode }) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      ),
+    });
+
+    await user.type(screen.getByLabelText('Email'), 'test@example.com');
+    await user.type(screen.getByLabelText('Password'), 'password123');
+    await user.click(screen.getByRole('button', { name: 'Sign In' }));
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/');
+    });
+
+    const currentUser = queryClient.getQueryData(['currentUser']);
+    expect(currentUser).toEqual({ displayName: 'Test User' });
+  });
+
   it('shows error message on failed login', async () => {
     mockedLogin.mockRejectedValue(new Error('Invalid email or password'));
     const user = userEvent.setup();

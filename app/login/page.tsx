@@ -1,9 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
-import { authService } from '@/services/auth-service';
+import { useLogin } from '@/hooks/use-auth';
 
 interface LoginFormData {
   username: string;
@@ -12,8 +11,7 @@ interface LoginFormData {
 
 export default function LoginPage() {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const loginMutation = useLogin();
 
   const {
     register,
@@ -21,18 +19,10 @@ export default function LoginPage() {
     formState: { errors },
   } = useForm<LoginFormData>();
 
-  const onSubmit = async (data: LoginFormData) => {
-    setError(null);
-    setIsSubmitting(true);
-
-    try {
-      await authService.login(data.username, data.password);
-      router.push('/');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
-    } finally {
-      setIsSubmitting(false);
-    }
+  const onSubmit = (data: LoginFormData) => {
+    loginMutation.mutate(data, {
+      onSuccess: () => router.push('/'),
+    });
   };
 
   return (
@@ -46,12 +36,12 @@ export default function LoginPage() {
             Sign In
           </h2>
 
-          {error && (
+          {loginMutation.error && (
             <div
               role="alert"
               className="mb-4 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 text-sm text-red-700 dark:text-red-300"
             >
-              {error}
+              {loginMutation.error.message}
             </div>
           )}
 
@@ -100,10 +90,10 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={loginMutation.isPending}
               className="mt-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? 'Signing in...' : 'Sign In'}
+              {loginMutation.isPending ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
         </div>
