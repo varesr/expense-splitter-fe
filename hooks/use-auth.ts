@@ -5,9 +5,13 @@ import { authService } from '@/services/auth-service';
 import type { LoginRequest, LoginResponse } from '@/types/auth';
 
 export function useLogin() {
+  const queryClient = useQueryClient();
   return useMutation<LoginResponse, Error, LoginRequest>({
     mutationFn: ({ username, password }) =>
       authService.login(username, password),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['currentUser'], data);
+    },
   });
 }
 

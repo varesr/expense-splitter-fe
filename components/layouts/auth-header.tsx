@@ -1,21 +1,22 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { authService } from '@/services/auth-service';
-import { useCurrentUser } from '@/hooks/use-auth';
+import { useCurrentUser, useLogout } from '@/hooks/use-auth';
 
 export function AuthHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const { data: user } = useCurrentUser();
+  const logoutMutation = useLogout();
 
   if (pathname === '/login') {
     return null;
   }
 
-  const handleLogout = async () => {
-    await authService.logout();
-    router.push('/login');
+  const handleLogout = () => {
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => router.push('/login'),
+    });
   };
 
   return (
