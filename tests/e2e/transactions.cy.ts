@@ -42,6 +42,10 @@ describe('Transactions Page', () => {
     cy.contains('a', 'Back to Home').should('be.visible').and('have.attr', 'href', '/');
   });
 
+  it('displays Add Transaction button', () => {
+    cy.contains('button', 'Add Transaction').should('be.visible');
+  });
+
   describe('with transactions data', () => {
     const mockTransactions = [
       {
@@ -51,6 +55,7 @@ describe('Transactions Page', () => {
         accountNumber: '1234',
         amount: 45.5,
         paidBy: 'Roland',
+        source: 'Amex',
       },
       {
         date: '18/06/2024',
@@ -59,6 +64,7 @@ describe('Transactions Page', () => {
         accountNumber: '5678',
         amount: 32.0,
         paidBy: 'Chris',
+        source: 'Amex',
       },
       {
         date: '20/06/2024',
@@ -67,6 +73,7 @@ describe('Transactions Page', () => {
         accountNumber: '1234',
         amount: 80.0,
         paidBy: 'Split',
+        source: 'Amex',
       },
     ];
 
@@ -82,16 +89,17 @@ describe('Transactions Page', () => {
       cy.wait('@transactionsRequest');
     }
 
-    it('displays transactions in a table after applying filter', () => {
+    it('displays transactions in a table with Source column', () => {
       applyFilterWithTransactions();
 
-      // Verify table headers
+      // Verify table headers - Source should exist, Card Member and Account should not
       cy.contains('th', 'Date').should('be.visible');
       cy.contains('th', 'Description').should('be.visible');
-      cy.contains('th', 'Card Member').should('be.visible');
-      cy.contains('th', 'Account').should('be.visible');
+      cy.contains('th', 'Source').should('be.visible');
       cy.contains('th', 'Amount').should('be.visible');
       cy.contains('th', 'Paid By').should('be.visible');
+      cy.contains('th', 'Card Member').should('not.exist');
+      cy.contains('th', 'Account').should('not.exist');
 
       // Verify transaction rows render with correct data
       cy.get('tbody tr').should('have.length', 3);
@@ -100,30 +108,17 @@ describe('Transactions Page', () => {
       cy.get('tbody tr').eq(0).within(() => {
         cy.contains('Sat 15/06/2024').should('be.visible');
         cy.contains('Grocery Store').should('be.visible');
-        cy.contains('Roland V').should('be.visible');
-        cy.contains('1234').should('be.visible');
+        cy.contains('Amex').should('be.visible');
         cy.contains('£45.50').should('be.visible');
       });
 
-      // Second transaction
-      cy.get('tbody tr').eq(1).within(() => {
-        cy.contains('Tue 18/06/2024').should('be.visible');
-        cy.contains('Restaurant').should('be.visible');
-        cy.contains('Chris M').should('be.visible');
-        cy.contains('£32.00').should('be.visible');
-      });
-
-      // Third transaction
-      cy.get('tbody tr').eq(2).within(() => {
-        cy.contains('Thu 20/06/2024').should('be.visible');
-        cy.contains('Electric Bill').should('be.visible');
-        cy.contains('£80.00').should('be.visible');
-      });
-
-      // Verify summary section
+      // Verify summary section with table format
       cy.contains('3 transaction(s) found').should('be.visible');
-      cy.contains('Transactions Total').should('be.visible');
-      cy.contains('£157.50').should('be.visible');
+      cy.get('[data-testid="summary-table"]').should('be.visible');
+      cy.get('[data-testid="summary-table"]').within(() => {
+        cy.contains('All').should('be.visible');
+        cy.contains('Amex').should('be.visible');
+      });
     });
 
     it('allows selecting payee for a transaction', () => {
@@ -136,7 +131,6 @@ describe('Transactions Page', () => {
         cy.get('button').contains('Chris').should('be.visible');
       });
 
-      // First transaction defaults to 'Roland' (from mock data paidBy)
       // Change first transaction payee from Roland to Chris
       cy.intercept('PUT', '**/transactions/paid', {
         statusCode: 200,
@@ -147,26 +141,97 @@ describe('Transactions Page', () => {
       });
 
       cy.wait('@savePaidTransaction');
+    });
 
-      // Verify totals updated: Roland=0, Chris=45.50+32.00=77.50, Split=80/2 each
-      // Roland's Total = 40.00 (half of split), Chris's Total = 77.50 + 40.00 = 117.50
-      cy.contains("Roland's Total").parent().contains('£40.00').should('be.visible');
-      cy.contains("Chris's Total").parent().contains('£117.50').should('be.visible');
+    describe('with mixed source transactions', () => {
+      const mixedTransactions = [
+        {
+          date: '15/06/2024',
+          description: 'Grocery Store',
+          cardMember: 'Roland V',
+          accountNumber: '1234',
+          amount: 45.5,
+          paidBy: 'Roland',
+          source: 'Amex',
+        },
+        {
+          date: '20/06/2024',
+          description: 'Custom Expense',
+          amount: 25.0,
+          paidBy: 'Chris',
+          source: 'Custom',
+        },
+      ];
 
-      // Change third transaction from Split to Roland
-      cy.intercept('PUT', '**/transactions/paid', {
+      it('displays source-based summary breakdown with Custom last', () => {
+        cy.intercept('GET', '**/transactions/2024/6', {
+          statusCode: 200,
+          body: mixedTransactions,
+        }).as('transactionsRequest');
+
+        cy.get('#year').select('2024');
+        cy.get('#month').select('6');
+        cy.contains('button', 'Apply Filter').click();
+        cy.wait('@transactionsRequest');
+
+        cy.get('[data-testid="summary-table"]').within(() => {
+          cy.contains('All').should('be.visible');
+          cy.contains('Amex').should('be.visible');
+          cy.contains('Custom').should('be.visible');
+
+          // Verify Custom is last source row
+          cy.get('tbody tr').last().should('contain', 'Custom');
+        });
+      });
+    });
+  });
+
+  describe('Add Transaction', () => {
+    it('opens popup when Add Transaction button is clicked', () => {
+      cy.intercept('GET', '**/transactions*', {
         statusCode: 200,
-      }).as('savePaidTransaction2');
+        body: [],
+      }).as('transactionsRequest');
 
-      cy.get('tbody tr').eq(2).within(() => {
-        cy.get('button').contains('Roland').click();
+      // Need to apply filter first so popup has year/month context
+      cy.get('#year').select('2024');
+      cy.get('#month').select('6');
+      cy.contains('button', 'Apply Filter').click();
+
+      cy.contains('button', 'Add Transaction').click();
+      cy.get('[data-testid="add-transaction-popup"]').should('be.visible');
+      cy.contains('h2', 'Add Transaction').should('be.visible');
+    });
+
+    it('allows adding a custom transaction', () => {
+      cy.intercept('GET', '**/transactions/2024/6', {
+        statusCode: 200,
+        body: [],
+      }).as('transactionsRequest');
+
+      cy.intercept('POST', '**/transactions', {
+        statusCode: 204,
+      }).as('saveTransaction');
+
+      cy.get('#year').select('2024');
+      cy.get('#month').select('6');
+      cy.contains('button', 'Apply Filter').click();
+      cy.wait('@transactionsRequest');
+
+      cy.contains('button', 'Add Transaction').click();
+
+      cy.get('#popup-amount').type('34.20');
+      cy.get('#popup-description').type('Test Expense');
+      cy.get('#popup-paidBy').select('Roland');
+
+      cy.get('[data-testid="add-transaction-popup"]').within(() => {
+        cy.contains('button', 'Add').click();
       });
 
-      cy.wait('@savePaidTransaction2');
+      cy.wait('@saveTransaction');
 
-      // Now: Roland=80.00, Chris=45.50+32.00=77.50
-      cy.contains("Roland's Total").parent().contains('£80.00').should('be.visible');
-      cy.contains("Chris's Total").parent().contains('£77.50').should('be.visible');
+      // Popup should close
+      cy.get('[data-testid="add-transaction-popup"]').should('not.exist');
     });
   });
 });

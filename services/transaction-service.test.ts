@@ -98,12 +98,12 @@ describe('transactionService', () => {
   });
 
   describe('savePaidTransaction', () => {
-    it('sends PUT request with correct body', async () => {
+    it('sends PUT request with correct body including source', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
       });
 
-      await transactionService.savePaidTransaction('expense-selection:2025:01:15:-100.00', 'Chris');
+      await transactionService.savePaidTransaction('expense-selection:2025:01:15:-100.00', 'Chris', 'Amex');
 
       expect(fetch).toHaveBeenCalledWith(
         `${TEST_API_URL}/transactions/paid`,
@@ -116,6 +116,7 @@ describe('transactionService', () => {
           body: JSON.stringify({
             key: 'expense-selection:2025:01:15:-100.00',
             paidBy: 'Chris',
+            source: 'Amex',
           }),
         }
       );
@@ -129,7 +130,7 @@ describe('transactionService', () => {
       });
 
       await expect(
-        transactionService.savePaidTransaction('bad-key', 'Chris')
+        transactionService.savePaidTransaction('bad-key', 'Chris', 'Amex')
       ).rejects.toThrow('Invalid paid transaction data');
     });
 
@@ -141,8 +142,77 @@ describe('transactionService', () => {
       });
 
       await expect(
-        transactionService.savePaidTransaction('expense-selection:2025:01:15:-100.00', 'Chris')
+        transactionService.savePaidTransaction('expense-selection:2025:01:15:-100.00', 'Chris', 'Amex')
       ).rejects.toThrow('Failed to save paid transaction: Internal Server Error');
+    });
+  });
+
+  describe('saveTransaction', () => {
+    it('sends POST request with correct body', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+      });
+
+      const request = {
+        day: '15',
+        month: '03',
+        year: '2026',
+        description: 'Test expense',
+        amount: '34.20',
+        paidBy: 'Roland',
+      };
+
+      await transactionService.saveTransaction(request);
+
+      expect(fetch).toHaveBeenCalledWith(
+        `${TEST_API_URL}/transactions`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(request),
+        }
+      );
+    });
+
+    it('throws error with server message on 400 response', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: () => Promise.resolve({ error: 'description must not be blank' }),
+      });
+
+      await expect(
+        transactionService.saveTransaction({
+          day: '15',
+          month: '03',
+          year: '2026',
+          description: '',
+          amount: '34.20',
+          paidBy: 'Roland',
+        })
+      ).rejects.toThrow('description must not be blank');
+    });
+
+    it('throws error on 500 response', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+      });
+
+      await expect(
+        transactionService.saveTransaction({
+          day: '15',
+          month: '03',
+          year: '2026',
+          description: 'Test',
+          amount: '34.20',
+          paidBy: 'Roland',
+        })
+      ).rejects.toThrow('Failed to save transaction: Internal Server Error');
     });
   });
 

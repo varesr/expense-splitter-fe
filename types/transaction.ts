@@ -11,19 +11,32 @@ export interface Transaction {
   /** Merchant name and location description */
   description: string;
   /** Name of the card member who made the transaction */
-  cardMember: string;
+  cardMember?: string;
   /** Last digits of the account number (typically prefixed with hyphen) */
-  accountNumber: string;
+  accountNumber?: string;
   /** Transaction amount (can be positive or negative) */
   amount: number;
   /** Who paid for this transaction (from backend API) */
   paidBy?: PaidBy | null;
+  /** Transaction source (e.g. 'Amex', 'Custom') */
+  source: string;
 }
 
 export interface PaidTransactionRequest {
   /** Storage key identifying the transaction */
   key: string;
   /** Who paid for the transaction */
+  paidBy: string;
+  /** Transaction source */
+  source: string;
+}
+
+export interface CreateTransactionRequest {
+  day: string;
+  month: string;
+  year: string;
+  description: string;
+  amount: string;
   paidBy: string;
 }
 

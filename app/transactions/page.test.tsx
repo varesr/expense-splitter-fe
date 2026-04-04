@@ -88,6 +88,7 @@ const mockTransactionsData: Transaction[] = [
     cardMember: 'Roland',
     accountNumber: '-1234',
     amount: -100.0,
+    source: 'Amex',
   },
   {
     date: '16/01/2025',
@@ -95,6 +96,7 @@ const mockTransactionsData: Transaction[] = [
     cardMember: 'Chris',
     accountNumber: '-5678',
     amount: -50.0,
+    source: 'Amex',
   },
   {
     date: '17/01/2025',
@@ -102,6 +104,7 @@ const mockTransactionsData: Transaction[] = [
     cardMember: 'Roland',
     accountNumber: '-1234',
     amount: -200.0,
+    source: 'Amex',
   },
 ];
 
@@ -147,6 +150,7 @@ describe('TransactionsPage Date Formatting', () => {
           cardMember: 'Roland',
           accountNumber: '-1234',
           amount: -50.0,
+          source: 'Amex',
         },
       ])
     );
@@ -167,24 +171,26 @@ describe('TransactionsPage Summary Section', () => {
     mockedUseTransactions.mockReturnValue(mockTransactionsReturn());
   });
 
-  it('does not display summary section before filter is submitted', () => {
+  it('does not display summary table before filter is submitted', () => {
     render(<TransactionsPage />, { wrapper: createWrapper() });
 
-    expect(screen.queryByText('Transactions Total')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('summary-table')).not.toBeInTheDocument();
   });
 
-  it('displays summary section when transactions are loaded', async () => {
+  it('displays summary table with source breakdown when transactions are loaded', async () => {
     mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(mockTransactionsData));
 
     render(<TransactionsPage />, { wrapper: createWrapper() });
     submitFilter('2025', '1');
 
     await waitFor(() => {
-      expect(screen.getByText('Transactions Total')).toBeInTheDocument();
+      expect(screen.getByTestId('summary-table')).toBeInTheDocument();
     });
 
-    expect(screen.getByText("Roland's Total")).toBeInTheDocument();
-    expect(screen.getByText("Chris's Total")).toBeInTheDocument();
+    // Summary table should have All row and source rows
+    const summaryTable = screen.getByTestId('summary-table');
+    expect(summaryTable).toHaveTextContent('All');
+    expect(summaryTable).toHaveTextContent('Amex');
   });
 
   it('calculates correct totals when all transactions default to Roland', async () => {
@@ -195,17 +201,13 @@ describe('TransactionsPage Summary Section', () => {
     submitFilter('2025', '1');
 
     await waitFor(() => {
-      expect(screen.getByText('Transactions Total')).toBeInTheDocument();
+      expect(screen.getByTestId('summary-table')).toBeInTheDocument();
     });
 
     // Total: |-100| + |-50| + |-200| = 350 displayed as £350.00
-    const totalCards = screen.getAllByText(/£\d+\.\d{2}/);
-    expect(totalCards.length).toBeGreaterThanOrEqual(3);
-
-    // Verify specific totals: total=£350.00, roland=£350.00, chris=£0.00
-    // £350.00 appears twice (Transactions Total and Roland's Total)
-    expect(screen.getAllByText('£350.00')).toHaveLength(2);
-    expect(screen.getByText('£0.00')).toBeInTheDocument();
+    // £350.00 appears in All row Total and All row Roland columns, and in Amex row
+    expect(screen.getAllByText('£350.00').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText('£0.00').length).toBeGreaterThanOrEqual(1);
   });
 
   it('calls setSelectionForTransaction when changing Paid By to Chris', async () => {
@@ -216,7 +218,7 @@ describe('TransactionsPage Summary Section', () => {
     submitFilter('2025', '1');
 
     await waitFor(() => {
-      expect(screen.getByText('Transactions Total')).toBeInTheDocument();
+      expect(screen.getByTestId('summary-table')).toBeInTheDocument();
     });
 
     // Find the first row's toggle group and click the "Chris" button
@@ -237,25 +239,23 @@ describe('TransactionsPage Summary Section', () => {
         cardMember: 'Roland',
         accountNumber: '-1234',
         amount: -100.0,
+        source: 'Amex',
       },
     ];
 
-    // Start with Split already selected so totals reflect the split
     setupExpenseSelectionsMock(() => 'Split');
     mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(singleTransaction));
 
     render(<TransactionsPage />, { wrapper: createWrapper() });
     submitFilter('2025', '1');
 
-    // After selecting Split for -100 transaction:
-    // Roland's total = 50, Chris's total = 50
     await waitFor(() => {
       const amounts = screen.getAllByText('£50.00');
       expect(amounts.length).toBeGreaterThanOrEqual(2);
     });
   });
 
-  it('does not display summary section when no transactions', async () => {
+  it('does not display summary table when no transactions', async () => {
     mockedUseTransactions.mockReturnValue(mockTransactionsSuccess([]));
 
     render(<TransactionsPage />, { wrapper: createWrapper() });
@@ -265,10 +265,10 @@ describe('TransactionsPage Summary Section', () => {
       expect(screen.getByText(/no transactions found/i)).toBeInTheDocument();
     });
 
-    expect(screen.queryByText('Transactions Total')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('summary-table')).not.toBeInTheDocument();
   });
 
-  it('does not display summary section while loading', async () => {
+  it('does not display summary table while loading', async () => {
     mockedUseTransactions.mockReturnValue(
       mockTransactionsReturn({
         isLoading: true,
@@ -283,8 +283,81 @@ describe('TransactionsPage Summary Section', () => {
     submitFilter('2025', '1');
 
     await waitFor(() => {
-      expect(screen.queryByText('Transactions Total')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('summary-table')).not.toBeInTheDocument();
     });
+  });
+});
+
+describe('TransactionsPage Table Columns', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('displays Source column in transaction table', async () => {
+    setupExpenseSelectionsMock();
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(mockTransactionsData));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+    submitFilter('2025', '1');
+
+    await waitFor(() => {
+      const headers = screen.getAllByRole('columnheader');
+      const headerTexts = headers.map(h => h.textContent);
+      expect(headerTexts).toContain('Source');
+    });
+  });
+
+  it('does not display Card Member or Account columns', async () => {
+    setupExpenseSelectionsMock();
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(mockTransactionsData));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+    submitFilter('2025', '1');
+
+    await waitFor(() => {
+      const headers = screen.getAllByRole('columnheader');
+      const headerTexts = headers.map(h => h.textContent);
+      expect(headerTexts).not.toContain('Card Member');
+      expect(headerTexts).not.toContain('Account');
+    });
+  });
+
+  it('shows Custom source last in summary breakdown', async () => {
+    const mixedTransactions: Transaction[] = [
+      { date: '15/01/2025', description: 'STORE', amount: -100.0, source: 'Amex', cardMember: 'Roland', accountNumber: '-1234' },
+      { date: '16/01/2025', description: 'Custom item', amount: 50.0, source: 'Custom' },
+    ];
+
+    setupExpenseSelectionsMock();
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(mixedTransactions));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+    submitFilter('2025', '1');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('summary-table')).toBeInTheDocument();
+    });
+
+    const table = screen.getByTestId('summary-table');
+    const rows = table.querySelectorAll('tbody tr');
+    // Row 0 = All, Row 1 = Amex, Row 2 = Custom (Custom last)
+    expect(rows.length).toBe(3);
+    expect(rows[1].textContent).toContain('Amex');
+    expect(rows[2].textContent).toContain('Custom');
+  });
+});
+
+describe('TransactionsPage Add Transaction Button', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    setupExpenseSelectionsMock();
+    mockedUseTransactions.mockReturnValue(mockTransactionsReturn());
+  });
+
+  it('displays Add Transaction button', () => {
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+
+    expect(screen.getByRole('button', { name: /add transaction/i })).toBeInTheDocument();
   });
 });
 

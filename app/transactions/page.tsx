@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { TransactionFilterForm } from '@/components/features/transaction-filter-form';
+import { AddTransactionPopup } from '@/components/features/add-transaction-popup';
 import { ToggleButtonGroup } from '@/components/ui/toggle-button-group';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useExpenseSelections } from '@/hooks/use-expense-selections';
@@ -27,8 +28,16 @@ interface FilterData {
   month: number;
 }
 
+interface SourceTotals {
+  source: string;
+  total: number;
+  roland: number;
+  chris: number;
+}
+
 export default function TransactionsPage() {
   const [selectedFilter, setSelectedFilter] = useState<FilterData | null>(null);
+  const [isAddPopupOpen, setIsAddPopupOpen] = useState(false);
 
   const {
     data: transactions,
@@ -107,6 +116,42 @@ export default function TransactionsPage() {
     return { total, roland, chris };
   }, [transactions, getSelectionForTransaction]);
 
+  const sourceTotals = useMemo(() => {
+    if (!transactions || transactions.length === 0) {
+      return [];
+    }
+
+    const bySource: Record<string, SourceTotals> = {};
+
+    transactions.forEach((transaction) => {
+      const source = transaction.source || 'Unknown';
+      if (!bySource[source]) {
+        bySource[source] = { source, total: 0, roland: 0, chris: 0 };
+      }
+
+      const amount = transaction.amount;
+      const paidBy = getSelectionForTransaction(transaction);
+
+      bySource[source].total += amount;
+
+      if (paidBy === 'Roland') {
+        bySource[source].roland += amount;
+      } else if (paidBy === 'Chris') {
+        bySource[source].chris += amount;
+      } else if (paidBy === 'Split') {
+        bySource[source].roland += amount / 2;
+        bySource[source].chris += amount / 2;
+      }
+    });
+
+    // Sort: Custom last, rest alphabetical
+    return Object.values(bySource).sort((a, b) => {
+      if (a.source === 'Custom') return 1;
+      if (b.source === 'Custom') return -1;
+      return a.source.localeCompare(b.source);
+    });
+  }, [transactions, getSelectionForTransaction]);
+
   return (
     <main className="flex min-h-screen flex-col items-center p-8 md:p-24">
       <div className="w-full max-w-7xl">
@@ -122,7 +167,10 @@ export default function TransactionsPage() {
         <h1 className="text-4xl font-bold mb-8 text-center text-stone-900 dark:text-stone-50">Transactions</h1>
 
         <div className="flex flex-col items-center gap-8">
-          <TransactionFilterForm onSubmit={handleFilterSubmit} />
+          <TransactionFilterForm
+            onSubmit={handleFilterSubmit}
+            onAddTransaction={() => setIsAddPopupOpen(true)}
+          />
 
           {selectedFilter && (
             <div className="w-full">
@@ -138,49 +186,45 @@ export default function TransactionsPage() {
                     : 'No transactions'}
                 </p>
                 {!isLoading && transactions && transactions.length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-white/50 dark:bg-stone-800/50 rounded-lg p-4">
-                      <p className="text-sm text-stone-600 dark:text-stone-400 mb-1">
-                        Transactions Total
-                      </p>
-                      <p
-                        className={`text-2xl font-bold ${
-                          totals.total >= 0
-                            ? 'text-primary-600 dark:text-primary-400'
-                            : 'text-red-600 dark:text-red-400'
-                        }`}
-                      >
-                        £{Math.abs(totals.total).toFixed(2)}
-                      </p>
-                    </div>
-                    <div className="bg-white/50 dark:bg-stone-800/50 rounded-lg p-4">
-                      <p className="text-sm text-stone-600 dark:text-stone-400 mb-1">
-                        Roland&apos;s Total
-                      </p>
-                      <p
-                        className={`text-2xl font-bold ${
-                          totals.roland >= 0
-                            ? 'text-primary-600 dark:text-primary-400'
-                            : 'text-red-600 dark:text-red-400'
-                        }`}
-                      >
-                        £{Math.abs(totals.roland).toFixed(2)}
-                      </p>
-                    </div>
-                    <div className="bg-white/50 dark:bg-stone-800/50 rounded-lg p-4">
-                      <p className="text-sm text-stone-600 dark:text-stone-400 mb-1">
-                        Chris&apos;s Total
-                      </p>
-                      <p
-                        className={`text-2xl font-bold ${
-                          totals.chris >= 0
-                            ? 'text-primary-600 dark:text-primary-400'
-                            : 'text-red-600 dark:text-red-400'
-                        }`}
-                      >
-                        £{Math.abs(totals.chris).toFixed(2)}
-                      </p>
-                    </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm" data-testid="summary-table">
+                      <thead>
+                        <tr className="border-b border-primary-200 dark:border-primary-700">
+                          <th className="text-left py-2 pr-4 text-stone-600 dark:text-stone-400 font-medium">Source</th>
+                          <th className="text-right py-2 px-4 text-stone-600 dark:text-stone-400 font-medium">Total</th>
+                          <th className="text-right py-2 px-4 text-stone-600 dark:text-stone-400 font-medium">Roland</th>
+                          <th className="text-right py-2 pl-4 text-stone-600 dark:text-stone-400 font-medium">Chris</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b border-primary-100 dark:border-primary-800">
+                          <td className="py-2 pr-4 font-semibold text-stone-900 dark:text-stone-50">All</td>
+                          <td className={`py-2 px-4 text-right font-bold text-lg ${totals.total >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-red-600 dark:text-red-400'}`}>
+                            £{Math.abs(totals.total).toFixed(2)}
+                          </td>
+                          <td className={`py-2 px-4 text-right font-bold text-lg ${totals.roland >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-red-600 dark:text-red-400'}`}>
+                            £{Math.abs(totals.roland).toFixed(2)}
+                          </td>
+                          <td className={`py-2 pl-4 text-right font-bold text-lg ${totals.chris >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-red-600 dark:text-red-400'}`}>
+                            £{Math.abs(totals.chris).toFixed(2)}
+                          </td>
+                        </tr>
+                        {sourceTotals.map((st) => (
+                          <tr key={st.source}>
+                            <td className="py-1.5 pr-4 text-stone-500 dark:text-stone-400 text-xs">{st.source}</td>
+                            <td className={`py-1.5 px-4 text-right text-xs ${st.total >= 0 ? 'text-stone-600 dark:text-stone-300' : 'text-red-500 dark:text-red-400'}`}>
+                              £{Math.abs(st.total).toFixed(2)}
+                            </td>
+                            <td className={`py-1.5 px-4 text-right text-xs ${st.roland >= 0 ? 'text-stone-600 dark:text-stone-300' : 'text-red-500 dark:text-red-400'}`}>
+                              £{Math.abs(st.roland).toFixed(2)}
+                            </td>
+                            <td className={`py-1.5 pl-4 text-right text-xs ${st.chris >= 0 ? 'text-stone-600 dark:text-stone-300' : 'text-red-500 dark:text-red-400'}`}>
+                              £{Math.abs(st.chris).toFixed(2)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </div>
@@ -212,10 +256,7 @@ export default function TransactionsPage() {
                               Description
                             </th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">
-                              Card Member
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">
-                              Account
+                              Source
                             </th>
                             <th className="px-6 py-3 text-right text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">
                               Amount
@@ -228,7 +269,7 @@ export default function TransactionsPage() {
                         <tbody className="bg-white dark:bg-stone-800 divide-y divide-stone-200 dark:divide-stone-700">
                           {transactions.map((transaction, index) => (
                             <tr
-                              key={`${transaction.date}-${transaction.accountNumber}-${index}`}
+                              key={`${transaction.date}-${transaction.source}-${index}`}
                               className="hover:bg-stone-50 dark:hover:bg-stone-700"
                             >
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900 dark:text-stone-100">
@@ -238,10 +279,7 @@ export default function TransactionsPage() {
                                 {transaction.description}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-700 dark:text-stone-300">
-                                {transaction.cardMember}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-600 dark:text-stone-400">
-                                {transaction.accountNumber}
+                                {transaction.source}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium">
                                 <span
@@ -283,6 +321,13 @@ export default function TransactionsPage() {
         </div>
       </div>
       {saveError && <Toast message={saveError} onDismiss={clearError} />}
+      {isAddPopupOpen && selectedFilter && (
+        <AddTransactionPopup
+          year={selectedFilter.year}
+          month={selectedFilter.month}
+          onClose={() => setIsAddPopupOpen(false)}
+        />
+      )}
     </main>
   );
 }

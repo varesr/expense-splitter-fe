@@ -21,6 +21,7 @@ const mockTransactions: Transaction[] = [
     accountNumber: '-1234',
     amount: -100.0,
     paidBy: null,
+    source: 'Amex',
   },
   {
     date: '16/01/2025',
@@ -29,6 +30,7 @@ const mockTransactions: Transaction[] = [
     accountNumber: '-5678',
     amount: -50.0,
     paidBy: 'Chris',
+    source: 'Amex',
   },
 ];
 
@@ -90,7 +92,8 @@ describe('useExpenseSelections', () => {
     await waitFor(() => {
       expect(mockedSavePaidTransaction).toHaveBeenCalledWith(
         'expense-selection:2025:01:15:-100.00',
-        'Split'
+        'Split',
+        'Amex'
       );
     });
   });

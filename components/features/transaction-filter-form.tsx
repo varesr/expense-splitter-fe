@@ -9,9 +9,10 @@ interface TransactionFilterFormData {
 
 interface TransactionFilterFormProps {
   onSubmit: (data: TransactionFilterFormData) => void;
+  onAddTransaction?: () => void;
 }
 
-export function TransactionFilterForm({ onSubmit }: TransactionFilterFormProps) {
+export function TransactionFilterForm({ onSubmit, onAddTransaction }: TransactionFilterFormProps) {
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
 
@@ -105,6 +106,17 @@ export function TransactionFilterForm({ onSubmit }: TransactionFilterFormProps) 
             Apply Filter
           </button>
         </div>
+        {onAddTransaction && (
+          <div className="mt-4 pt-4 border-t border-stone-200 dark:border-stone-700">
+            <button
+              type="button"
+              onClick={onAddTransaction}
+              className="w-full bg-stone-100 hover:bg-stone-200 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-200 font-semibold py-2 px-4 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2"
+            >
+              Add Transaction
+            </button>
+          </div>
+        )}
       </div>
     </form>
   );

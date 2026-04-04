@@ -39,8 +39,8 @@ export function useExpenseSelections(
   const clearError = useCallback(() => setError(null), []);
 
   const mutation = useMutation({
-    mutationFn: ({ key, paidBy }: { key: string; paidBy: PaidBy }) =>
-      transactionService.savePaidTransaction(key, paidBy),
+    mutationFn: ({ key, paidBy, source }: { key: string; paidBy: PaidBy; source: string }) =>
+      transactionService.savePaidTransaction(key, paidBy, source),
     onMutate: async ({ key, paidBy }) => {
       if (year === undefined || month === undefined) return;
 
@@ -88,7 +88,7 @@ export function useExpenseSelections(
     (transaction: Transaction, value: PaidBy): void => {
       const identifier = createIdentifierFromTransaction(transaction.date, transaction.amount);
       const key = generateStorageKey(identifier);
-      mutation.mutate({ key, paidBy: value });
+      mutation.mutate({ key, paidBy: value, source: transaction.source });
     },
     [mutation]
   );
