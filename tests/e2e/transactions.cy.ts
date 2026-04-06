@@ -56,6 +56,7 @@ describe('Transactions Page', () => {
         amount: 45.5,
         paidBy: 'Roland',
         source: 'Amex',
+        originallyPaidBy: 'Roland',
       },
       {
         date: '18/06/2024',
@@ -65,6 +66,7 @@ describe('Transactions Page', () => {
         amount: 32.0,
         paidBy: 'Chris',
         source: 'Amex',
+        originallyPaidBy: 'Roland',
       },
       {
         date: '20/06/2024',
@@ -74,6 +76,7 @@ describe('Transactions Page', () => {
         amount: 80.0,
         paidBy: 'Split',
         source: 'Amex',
+        originallyPaidBy: 'Roland',
       },
     ];
 
@@ -104,21 +107,27 @@ describe('Transactions Page', () => {
       // Verify transaction rows render with correct data
       cy.get('tbody tr').should('have.length', 3);
 
-      // First transaction - date should include day prefix
+      // Transactions sorted by date descending - first row is 20/06 (Electric Bill)
       cy.get('tbody tr').eq(0).within(() => {
-        cy.contains('Sat 15/06/2024').should('be.visible');
-        cy.contains('Grocery Store').should('be.visible');
+        cy.contains('Thu 20/06/2024').should('be.visible');
+        cy.contains('Electric Bill').should('be.visible');
         cy.contains('Amex').should('be.visible');
-        cy.contains('£45.50').should('be.visible');
+        cy.contains('£80.00').should('be.visible');
       });
 
-      // Verify summary section with table format
+      // Verify shared expenses summary section
       cy.contains('3 transaction(s) found').should('be.visible');
+      cy.contains('Shared Expenses').should('be.visible');
       cy.get('[data-testid="summary-table"]').should('be.visible');
       cy.get('[data-testid="summary-table"]').within(() => {
         cy.contains('All').should('be.visible');
-        cy.contains('Amex').should('be.visible');
+        cy.contains('Paid by Roland').should('be.visible');
+        cy.contains('Paid by Chris').should('be.visible');
       });
+
+      // Balance section should show who owes
+      cy.get('[data-testid="balance-section"]').should('be.visible');
+      cy.get('[data-testid="balance-section"]').should('contain', 'Chris still owes');
     });
 
     it('allows selecting payee for a transaction', () => {
@@ -151,15 +160,17 @@ describe('Transactions Page', () => {
           cardMember: 'Roland V',
           accountNumber: '1234',
           amount: 45.5,
-          paidBy: 'Roland',
+          paidBy: 'Split',
           source: 'Amex',
+          originallyPaidBy: 'Roland',
         },
         {
           date: '20/06/2024',
           description: 'Custom Expense',
           amount: 25.0,
-          paidBy: 'Chris',
+          paidBy: 'Split',
           source: 'Custom',
+          originallyPaidBy: 'Chris',
         },
       ];
 
@@ -182,6 +193,22 @@ describe('Transactions Page', () => {
           // Verify Custom is last source row
           cy.get('tbody tr').last().should('contain', 'Custom');
         });
+      });
+
+      it('orders Custom transactions before Amex in the table', () => {
+        cy.intercept('GET', '**/transactions/2024/6', {
+          statusCode: 200,
+          body: mixedTransactions,
+        }).as('transactionsRequest');
+
+        cy.get('#year').select('2024');
+        cy.get('#month').select('6');
+        cy.contains('button', 'Apply Filter').click();
+        cy.wait('@transactionsRequest');
+
+        // In the transaction table, Custom should come before Amex
+        cy.get('tbody tr').eq(0).should('contain', 'Custom Expense');
+        cy.get('tbody tr').eq(1).should('contain', 'Grocery Store');
       });
     });
   });
