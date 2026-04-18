@@ -20,6 +20,8 @@ export interface Transaction {
   paidBy?: PaidBy | null;
   /** Transaction source (e.g. 'Amex', 'Custom') */
   source: string;
+  /** Who originally paid for the transaction (before any selection override) */
+  originallyPaidBy?: string;
 }
 
 export interface PaidTransactionRequest {

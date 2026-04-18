@@ -89,6 +89,7 @@ const mockTransactionsData: Transaction[] = [
     accountNumber: '-1234',
     amount: -100.0,
     source: 'Amex',
+    originallyPaidBy: 'Roland',
   },
   {
     date: '16/01/2025',
@@ -97,6 +98,7 @@ const mockTransactionsData: Transaction[] = [
     accountNumber: '-5678',
     amount: -50.0,
     source: 'Amex',
+    originallyPaidBy: 'Roland',
   },
   {
     date: '17/01/2025',
@@ -105,6 +107,7 @@ const mockTransactionsData: Transaction[] = [
     accountNumber: '-1234',
     amount: -200.0,
     source: 'Amex',
+    originallyPaidBy: 'Roland',
   },
 ];
 
@@ -151,6 +154,7 @@ describe('TransactionsPage Date Formatting', () => {
           accountNumber: '-1234',
           amount: -50.0,
           source: 'Amex',
+          originallyPaidBy: 'Roland',
         },
       ])
     );
@@ -178,6 +182,8 @@ describe('TransactionsPage Summary Section', () => {
   });
 
   it('displays summary table with source breakdown when transactions are loaded', async () => {
+    // Use Split so transactions appear in shared expenses summary
+    setupExpenseSelectionsMock(() => 'Split');
     mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(mockTransactionsData));
 
     render(<TransactionsPage />, { wrapper: createWrapper() });
@@ -193,7 +199,7 @@ describe('TransactionsPage Summary Section', () => {
     expect(summaryTable).toHaveTextContent('Amex');
   });
 
-  it('calculates correct totals when all transactions default to Roland', async () => {
+  it('excludes non-shared expenses from summary when originallyPaidBy matches paidBy', async () => {
     setupExpenseSelectionsMock(() => 'Roland');
     mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(mockTransactionsData));
 
@@ -204,10 +210,12 @@ describe('TransactionsPage Summary Section', () => {
       expect(screen.getByTestId('summary-table')).toBeInTheDocument();
     });
 
-    // Total: |-100| + |-50| + |-200| = 350 displayed as £350.00
-    // £350.00 appears in All row Total and All row Roland columns, and in Amex row
-    expect(screen.getAllByText('£350.00').length).toBeGreaterThanOrEqual(2);
-    expect(screen.getAllByText('£0.00').length).toBeGreaterThanOrEqual(1);
+    // All transactions have originallyPaidBy=Roland and paidBy=Roland
+    // So all are excluded from shared expenses - totals should be £0.00
+    const summaryTable = screen.getByTestId('summary-table');
+    const allRow = summaryTable.querySelector('tbody tr');
+    expect(allRow).toBeTruthy();
+    expect(allRow!.textContent).toContain('£0.00');
   });
 
   it('calls setSelectionForTransaction when changing Paid By to Chris', async () => {
@@ -222,16 +230,18 @@ describe('TransactionsPage Summary Section', () => {
     });
 
     // Find the first row's toggle group and click the "Chris" button
+    // Transactions are sorted by date descending, so first row is 17/01 (UTILITIES)
     const toggleGroups = screen.getAllByRole('group');
     const firstRowToggle = toggleGroups[0];
     const chrisButton = firstRowToggle.querySelector('button:last-child');
     expect(chrisButton).toBeTruthy();
     fireEvent.click(chrisButton!);
 
-    expect(mockSetSelection).toHaveBeenCalledWith(mockTransactionsData[0], 'Chris');
+    // First sorted transaction is the 17/01 one (mockTransactionsData[2] after sort)
+    expect(mockSetSelection).toHaveBeenCalledWith(mockTransactionsData[2], 'Chris');
   });
 
-  it('splits transaction equally between Roland and Chris when Split is selected', async () => {
+  it('includes split transaction in shared expenses when originallyPaidBy differs from paidBy', async () => {
     const singleTransaction: Transaction[] = [
       {
         date: '15/01/2025',
@@ -240,6 +250,7 @@ describe('TransactionsPage Summary Section', () => {
         accountNumber: '-1234',
         amount: -100.0,
         source: 'Amex',
+        originallyPaidBy: 'Roland',
       },
     ];
 
@@ -250,8 +261,11 @@ describe('TransactionsPage Summary Section', () => {
     submitFilter('2025', '1');
 
     await waitFor(() => {
-      const amounts = screen.getAllByText('£50.00');
-      expect(amounts.length).toBeGreaterThanOrEqual(2);
+      // originallyPaidBy=Roland, paidBy=Split → shared expense
+      // Total: £100.00, Paid by Roland: £100.00, Chris owes: £50.00
+      expect(screen.getByTestId('summary-table')).toBeInTheDocument();
+      expect(screen.getByTestId('balance-section')).toHaveTextContent('Chris still owes');
+      expect(screen.getByTestId('balance-section')).toHaveTextContent('£50.00');
     });
   });
 
@@ -324,11 +338,12 @@ describe('TransactionsPage Table Columns', () => {
 
   it('shows Custom source last in summary breakdown', async () => {
     const mixedTransactions: Transaction[] = [
-      { date: '15/01/2025', description: 'STORE', amount: -100.0, source: 'Amex', cardMember: 'Roland', accountNumber: '-1234' },
-      { date: '16/01/2025', description: 'Custom item', amount: 50.0, source: 'Custom' },
+      { date: '15/01/2025', description: 'STORE', amount: -100.0, source: 'Amex', cardMember: 'Roland', accountNumber: '-1234', originallyPaidBy: 'Roland' },
+      { date: '16/01/2025', description: 'Custom item', amount: 50.0, source: 'Custom', originallyPaidBy: 'Chris' },
     ];
 
-    setupExpenseSelectionsMock();
+    // Both marked as Split so they appear in shared expenses
+    setupExpenseSelectionsMock(() => 'Split');
     mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(mixedTransactions));
 
     render(<TransactionsPage />, { wrapper: createWrapper() });
@@ -344,6 +359,129 @@ describe('TransactionsPage Table Columns', () => {
     expect(rows.length).toBe(3);
     expect(rows[1].textContent).toContain('Amex');
     expect(rows[2].textContent).toContain('Custom');
+  });
+});
+
+describe('TransactionsPage Shared Expenses & Balance', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('calculates shared expenses correctly matching the spec example', async () => {
+    // From spec: Roland paid Amex A(20, Split), B(10, Split), E(10, Roland-discarded), F(30, Roland-discarded)
+    //            Chris paid Custom C(10, Split), Roland paid Custom D(10, Chris)
+    // Shared: A, B, C, D. Non-shared: E, F
+    // Chris owes: 10+5+10=25, Roland owes: 5. Net: Chris owes 20
+    const specTransactions: Transaction[] = [
+      { date: '10/01/2025', description: 'Amex A', amount: 20.0, source: 'Amex', originallyPaidBy: 'Roland', paidBy: 'Split' },
+      { date: '12/01/2025', description: 'Amex B', amount: 10.0, source: 'Amex', originallyPaidBy: 'Roland', paidBy: 'Split' },
+      { date: '15/01/2025', description: 'Amex E', amount: 10.0, source: 'Amex', originallyPaidBy: 'Roland', paidBy: 'Roland' },
+      { date: '18/01/2025', description: 'Custom C', amount: 10.0, source: 'Custom', originallyPaidBy: 'Chris', paidBy: 'Split' },
+      { date: '20/01/2025', description: 'Custom D', amount: 10.0, source: 'Custom', originallyPaidBy: 'Roland', paidBy: 'Chris' },
+      { date: '22/01/2025', description: 'Amex F', amount: 30.0, source: 'Amex', originallyPaidBy: 'Roland', paidBy: 'Roland' },
+    ];
+
+    setupExpenseSelectionsMock((t) => t.paidBy as PaidBy || 'Roland');
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(specTransactions));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+    submitFilter('2025', '1');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('balance-section')).toBeInTheDocument();
+    });
+
+    // Chris owes £20.00
+    expect(screen.getByTestId('balance-section')).toHaveTextContent('Chris still owes');
+    expect(screen.getByTestId('balance-section')).toHaveTextContent('£20.00');
+  });
+
+  it('shows All settled when balance is zero', async () => {
+    const balancedTransactions: Transaction[] = [
+      { date: '10/01/2025', description: 'Roland pays', amount: 20.0, source: 'Amex', originallyPaidBy: 'Roland', paidBy: 'Split' },
+      { date: '12/01/2025', description: 'Chris pays', amount: 20.0, source: 'Custom', originallyPaidBy: 'Chris', paidBy: 'Split' },
+    ];
+
+    setupExpenseSelectionsMock((t) => t.paidBy as PaidBy || 'Roland');
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(balancedTransactions));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+    submitFilter('2025', '1');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('balance-section')).toHaveTextContent('All settled');
+    });
+  });
+
+  it('shows summary table headers with Paid by prefix', async () => {
+    setupExpenseSelectionsMock(() => 'Split');
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(mockTransactionsData));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+    submitFilter('2025', '1');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('summary-table')).toBeInTheDocument();
+    });
+
+    const table = screen.getByTestId('summary-table');
+    expect(table).toHaveTextContent('Paid by Roland');
+    expect(table).toHaveTextContent('Paid by Chris');
+  });
+});
+
+describe('TransactionsPage Transaction Ordering', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('orders Custom transactions before Amex', async () => {
+    const mixedTransactions: Transaction[] = [
+      { date: '15/01/2025', description: 'Amex item', amount: 10.0, source: 'Amex', originallyPaidBy: 'Roland' },
+      { date: '16/01/2025', description: 'Custom item', amount: 20.0, source: 'Custom', originallyPaidBy: 'Chris' },
+    ];
+
+    setupExpenseSelectionsMock();
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(mixedTransactions));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+    submitFilter('2025', '1');
+
+    await waitFor(() => {
+      // Find toggle button groups - each transaction row has one
+      const toggleGroups = screen.getAllByRole('group');
+      expect(toggleGroups).toHaveLength(2);
+
+      // First row should be Custom item (Custom before Amex)
+      const firstRowCells = toggleGroups[0].closest('tr')!;
+      expect(firstRowCells).toHaveTextContent('Custom item');
+
+      const secondRowCells = toggleGroups[1].closest('tr')!;
+      expect(secondRowCells).toHaveTextContent('Amex item');
+    });
+  });
+
+  it('orders transactions by date descending within same source', async () => {
+    const transactions: Transaction[] = [
+      { date: '10/01/2025', description: 'Oldest', amount: 10.0, source: 'Amex', originallyPaidBy: 'Roland' },
+      { date: '20/01/2025', description: 'Newest', amount: 20.0, source: 'Amex', originallyPaidBy: 'Roland' },
+      { date: '15/01/2025', description: 'Middle', amount: 15.0, source: 'Amex', originallyPaidBy: 'Roland' },
+    ];
+
+    setupExpenseSelectionsMock();
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(transactions));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+    submitFilter('2025', '1');
+
+    await waitFor(() => {
+      const toggleGroups = screen.getAllByRole('group');
+      expect(toggleGroups).toHaveLength(3);
+
+      expect(toggleGroups[0].closest('tr')!).toHaveTextContent('Newest');
+      expect(toggleGroups[1].closest('tr')!).toHaveTextContent('Middle');
+      expect(toggleGroups[2].closest('tr')!).toHaveTextContent('Oldest');
+    });
   });
 });
 
