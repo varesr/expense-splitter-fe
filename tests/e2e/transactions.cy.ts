@@ -105,10 +105,10 @@ describe('Transactions Page', () => {
       cy.contains('th', 'Account').should('not.exist');
 
       // Verify transaction rows render with correct data
-      cy.get('tbody tr').should('have.length', 3);
+      cy.get('[data-testid="transactions-table"] tbody tr').should('have.length', 3);
 
       // Transactions sorted by date descending - first row is 20/06 (Electric Bill)
-      cy.get('tbody tr').eq(0).within(() => {
+      cy.get('[data-testid="transactions-table"] tbody tr').eq(0).within(() => {
         cy.contains('Thu 20/06/2024').should('be.visible');
         cy.contains('Electric Bill').should('be.visible');
         cy.contains('Amex').should('be.visible');
@@ -134,7 +134,7 @@ describe('Transactions Page', () => {
       applyFilterWithTransactions();
 
       // Verify each row has Roland, Split, Chris buttons
-      cy.get('tbody tr').eq(0).within(() => {
+      cy.get('[data-testid="transactions-table"] tbody tr').eq(0).within(() => {
         cy.get('button').contains('Roland').should('be.visible');
         cy.get('button').contains('Split').should('be.visible');
         cy.get('button').contains('Chris').should('be.visible');
@@ -145,7 +145,7 @@ describe('Transactions Page', () => {
         statusCode: 200,
       }).as('savePaidTransaction');
 
-      cy.get('tbody tr').eq(0).within(() => {
+      cy.get('[data-testid="transactions-table"] tbody tr').eq(0).within(() => {
         cy.get('button').contains('Chris').click();
       });
 
@@ -207,9 +207,33 @@ describe('Transactions Page', () => {
         cy.wait('@transactionsRequest');
 
         // In the transaction table, Custom should come before Amex
-        cy.get('tbody tr').eq(0).should('contain', 'Custom Expense');
-        cy.get('tbody tr').eq(1).should('contain', 'Grocery Store');
+        cy.get('[data-testid="transactions-table"] tbody tr').eq(0).should('contain', 'Custom Expense');
+        cy.get('[data-testid="transactions-table"] tbody tr').eq(1).should('contain', 'Grocery Store');
       });
+    });
+  });
+
+  describe('with a refund transaction', () => {
+    it('displays refund as -£X.XX and reduces the amount owed', () => {
+      cy.intercept('GET', '**/transactions/2026/2', {
+        statusCode: 200,
+        fixture: 'transactions-with-refund.json',
+      }).as('refundRequest');
+
+      cy.get('#year').select('2026');
+      cy.get('#month').select('2');
+      cy.contains('button', 'Apply Filter').click();
+      cy.wait('@refundRequest');
+
+      // Refund row should show -£5.00; charge row should show £20.00 (not -£20.00)
+      cy.get('[data-testid="transactions-table"] tbody')
+        .should('contain', '-£5.00')
+        .and('contain', '£20.00')
+        .and('not.contain', '-£20.00');
+
+      // Balance: £20 Split → Chris owes £10; refund £5 Split → Chris owes £2.50 less → £7.50
+      cy.get('[data-testid="balance-section"]').should('contain', 'Chris still owes');
+      cy.get('[data-testid="balance-section"]').should('contain', '£7.50');
     });
   });
 

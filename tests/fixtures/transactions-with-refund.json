@@ -1,0 +1,22 @@
+[
+  {
+    "date": "02/02/2026",
+    "description": "SAINSBURY'S HORNSEY",
+    "cardMember": "MR VARES",
+    "accountNumber": "-41005",
+    "amount": 20.00,
+    "paidBy": "Split",
+    "source": "Amex",
+    "originallyPaidBy": "Roland"
+  },
+  {
+    "date": "05/02/2026",
+    "description": "SAINSBURY'S HORNSEY - REFUND",
+    "cardMember": "MR VARES",
+    "accountNumber": "-41005",
+    "amount": -5.00,
+    "paidBy": "Split",
+    "source": "Amex",
+    "originallyPaidBy": "Roland"
+  }
+]
