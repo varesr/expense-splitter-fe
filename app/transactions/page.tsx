@@ -23,6 +23,11 @@ function formatDateWithDay(dateString: string): string {
   return `${dayName} ${dateString}`;
 }
 
+function formatSignedAmount(value: number): string {
+  const sign = value < 0 ? '-' : '';
+  return `${sign}£${Math.abs(value).toFixed(2)}`;
+}
+
 interface FilterData {
   year: number;
   month: number;
@@ -145,19 +150,17 @@ export default function TransactionsPage() {
         bySource[source].chris += amount;
       }
 
-      // Calculate balance using absolute amount
-      // (Amex charges are negative, custom expenses are positive)
-      const absAmount = Math.abs(amount);
+      // Signed amount: negatives represent refunds/cashbacks that reduce the debt.
       if (paidBy === 'Split') {
         if (originallyPaidBy === 'Roland') {
-          chrisOwes += absAmount / 2;
+          chrisOwes += amount / 2;
         } else if (originallyPaidBy === 'Chris') {
-          rolandOwes += absAmount / 2;
+          rolandOwes += amount / 2;
         }
       } else if (paidBy === 'Chris' && originallyPaidBy === 'Roland') {
-        chrisOwes += absAmount;
+        chrisOwes += amount;
       } else if (paidBy === 'Roland' && originallyPaidBy === 'Chris') {
-        rolandOwes += absAmount;
+        rolandOwes += amount;
       }
     });
 
@@ -230,26 +233,26 @@ export default function TransactionsPage() {
                           <tr className="border-b border-primary-100 dark:border-primary-800">
                             <td className="py-2 pr-4 font-semibold text-stone-900 dark:text-stone-50">All</td>
                             <td className={`py-2 px-4 text-right font-bold text-lg ${sharedTotals.total >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-red-600 dark:text-red-400'}`}>
-                              £{Math.abs(sharedTotals.total).toFixed(2)}
+                              {formatSignedAmount(sharedTotals.total)}
                             </td>
                             <td className={`py-2 px-4 text-right font-bold text-lg ${sharedTotals.roland >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-red-600 dark:text-red-400'}`}>
-                              £{Math.abs(sharedTotals.roland).toFixed(2)}
+                              {formatSignedAmount(sharedTotals.roland)}
                             </td>
                             <td className={`py-2 pl-4 text-right font-bold text-lg ${sharedTotals.chris >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-red-600 dark:text-red-400'}`}>
-                              £{Math.abs(sharedTotals.chris).toFixed(2)}
+                              {formatSignedAmount(sharedTotals.chris)}
                             </td>
                           </tr>
                           {sharedSourceTotals.map((st) => (
                             <tr key={st.source}>
                               <td className="py-1.5 pr-4 text-stone-500 dark:text-stone-400 text-xs">{st.source}</td>
                               <td className={`py-1.5 px-4 text-right text-xs ${st.total >= 0 ? 'text-stone-600 dark:text-stone-300' : 'text-red-500 dark:text-red-400'}`}>
-                                £{Math.abs(st.total).toFixed(2)}
+                                {formatSignedAmount(st.total)}
                               </td>
                               <td className={`py-1.5 px-4 text-right text-xs ${st.roland >= 0 ? 'text-stone-600 dark:text-stone-300' : 'text-red-500 dark:text-red-400'}`}>
-                                £{Math.abs(st.roland).toFixed(2)}
+                                {formatSignedAmount(st.roland)}
                               </td>
                               <td className={`py-1.5 pl-4 text-right text-xs ${st.chris >= 0 ? 'text-stone-600 dark:text-stone-300' : 'text-red-500 dark:text-red-400'}`}>
-                                £{Math.abs(st.chris).toFixed(2)}
+                                {formatSignedAmount(st.chris)}
                               </td>
                             </tr>
                           ))}
@@ -285,7 +288,7 @@ export default function TransactionsPage() {
               {!isLoading && sortedTransactions.length > 0 && (
                 <div className="bg-white dark:bg-stone-800 rounded-lg shadow-md overflow-hidden">
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
+                    <table data-testid="transactions-table" className="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
                       <thead className="bg-stone-50 dark:bg-stone-900">
                         <tr>
                           <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">
@@ -328,7 +331,7 @@ export default function TransactionsPage() {
                                     : 'text-red-600 dark:text-red-400'
                                 }
                               >
-                                £{Math.abs(transaction.amount).toFixed(2)}
+                                {formatSignedAmount(transaction.amount)}
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-center">

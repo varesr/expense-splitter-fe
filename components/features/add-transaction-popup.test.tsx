@@ -186,4 +186,62 @@ describe('AddTransactionPopup', () => {
 
     expect(mockedSaveTransaction).not.toHaveBeenCalled();
   });
+
+  it('accepts a negative amount and zero-pads it (e.g. -5 → -5.00)', async () => {
+    render(<AddTransactionPopup year={2026} month={3} onClose={mockOnClose} />, {
+      wrapper: createWrapper(),
+    });
+
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-03-15' } });
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '-5' } });
+    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Cashback refund' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /^add$/i }));
+
+    await waitFor(() => {
+      expect(mockedSaveTransaction).toHaveBeenCalledWith({
+        day: '15',
+        month: '03',
+        year: '2026',
+        description: 'Cashback refund',
+        amount: '-5.00',
+        paidBy: 'Roland',
+      });
+    });
+  });
+
+  it('zero-pads a negative amount with a single decimal (e.g. -5.7 → -5.70)', async () => {
+    render(<AddTransactionPopup year={2026} month={3} onClose={mockOnClose} />, {
+      wrapper: createWrapper(),
+    });
+
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-03-15' } });
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '-5.7' } });
+    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Refund' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /^add$/i }));
+
+    await waitFor(() => {
+      expect(mockedSaveTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: '-5.70' })
+      );
+    });
+  });
+
+  it('rejects an invalid amount with multiple minus signs', async () => {
+    render(<AddTransactionPopup year={2026} month={3} onClose={mockOnClose} />, {
+      wrapper: createWrapper(),
+    });
+
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '--5' } });
+    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Test' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /^add$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/enter a valid amount/i)).toBeInTheDocument();
+    });
+
+    expect(mockedSaveTransaction).not.toHaveBeenCalled();
+  });
 });

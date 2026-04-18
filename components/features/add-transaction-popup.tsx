@@ -18,10 +18,10 @@ interface AddTransactionPopupProps {
 }
 
 function formatAmount(value: string): string {
-  if (/^\d+$/.test(value)) {
+  if (/^-?\d+$/.test(value)) {
     return value + '.00';
   }
-  if (/^\d+\.\d$/.test(value)) {
+  if (/^-?\d+\.\d$/.test(value)) {
     return value + '0';
   }
   return value;

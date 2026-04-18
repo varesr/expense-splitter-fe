@@ -25,6 +25,7 @@ A modern web application for tracking and splitting expenses, built with Next.js
 - **Route Protection**: Next.js middleware redirects unauthenticated users to login page
 - **Transaction Management**: View and filter transactions by year and month
 - **Paid By Tracking**: Track who paid for each transaction (Roland, Chris, or Split) with backend API persistence and optimistic updates
+- **Refunds & Cashbacks**: Negative transaction amounts (refunds, cashbacks) are respected as signed values — they reduce the balance owed and render as `-£X.XX` in red
 - **Type-Safe**: Full TypeScript support with strict mode enabled
 - **Modern UI**: Built with Tailwind CSS, responsive design with dark mode support
 - **Custom Theme**: Light backgrounds with dark green components for a professional appearance

@@ -87,7 +87,7 @@ const mockTransactionsData: Transaction[] = [
     description: 'GROCERY STORE',
     cardMember: 'Roland',
     accountNumber: '-1234',
-    amount: -100.0,
+    amount: 100.0,
     source: 'Amex',
     originallyPaidBy: 'Roland',
   },
@@ -96,7 +96,7 @@ const mockTransactionsData: Transaction[] = [
     description: 'RESTAURANT',
     cardMember: 'Chris',
     accountNumber: '-5678',
-    amount: -50.0,
+    amount: 50.0,
     source: 'Amex',
     originallyPaidBy: 'Roland',
   },
@@ -105,7 +105,7 @@ const mockTransactionsData: Transaction[] = [
     description: 'UTILITIES',
     cardMember: 'Roland',
     accountNumber: '-1234',
-    amount: -200.0,
+    amount: 200.0,
     source: 'Amex',
     originallyPaidBy: 'Roland',
   },
@@ -152,7 +152,7 @@ describe('TransactionsPage Date Formatting', () => {
           description: 'TEST PURCHASE',
           cardMember: 'Roland',
           accountNumber: '-1234',
-          amount: -50.0,
+          amount: 50.0,
           source: 'Amex',
           originallyPaidBy: 'Roland',
         },
@@ -248,7 +248,7 @@ describe('TransactionsPage Summary Section', () => {
         description: 'SHARED EXPENSE',
         cardMember: 'Roland',
         accountNumber: '-1234',
-        amount: -100.0,
+        amount: 100.0,
         source: 'Amex',
         originallyPaidBy: 'Roland',
       },
@@ -338,7 +338,7 @@ describe('TransactionsPage Table Columns', () => {
 
   it('shows Custom source last in summary breakdown', async () => {
     const mixedTransactions: Transaction[] = [
-      { date: '15/01/2025', description: 'STORE', amount: -100.0, source: 'Amex', cardMember: 'Roland', accountNumber: '-1234', originallyPaidBy: 'Roland' },
+      { date: '15/01/2025', description: 'STORE', amount: 100.0, source: 'Amex', cardMember: 'Roland', accountNumber: '-1234', originallyPaidBy: 'Roland' },
       { date: '16/01/2025', description: 'Custom item', amount: 50.0, source: 'Custom', originallyPaidBy: 'Chris' },
     ];
 
@@ -427,6 +427,128 @@ describe('TransactionsPage Shared Expenses & Balance', () => {
     const table = screen.getByTestId('summary-table');
     expect(table).toHaveTextContent('Paid by Roland');
     expect(table).toHaveTextContent('Paid by Chris');
+  });
+});
+
+describe('TransactionsPage Negative Transactions (Refunds & Cashbacks)', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('reduces Chris\'s debt when a Roland-paid Split transaction has a refund', async () => {
+    // Roland charged £20 (Split) → Chris owes £10; refunded £5 (Split) → Chris's owe reduces by £2.50 → £7.50
+    const transactions: Transaction[] = [
+      { date: '02/02/2026', description: 'Charge', amount: 20.0, source: 'Amex', originallyPaidBy: 'Roland', paidBy: 'Split' },
+      { date: '05/02/2026', description: 'Refund', amount: -5.0, source: 'Amex', originallyPaidBy: 'Roland', paidBy: 'Split' },
+    ];
+
+    setupExpenseSelectionsMock((t) => t.paidBy as PaidBy || 'Roland');
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(transactions));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+    submitFilter('2026', '2');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('balance-section')).toHaveTextContent('Chris still owes');
+      expect(screen.getByTestId('balance-section')).toHaveTextContent('£7.50');
+    });
+  });
+
+  it('reduces Roland\'s debt when a Chris-paid Split transaction has a refund', async () => {
+    const transactions: Transaction[] = [
+      { date: '02/02/2026', description: 'Charge', amount: 20.0, source: 'Custom', originallyPaidBy: 'Chris', paidBy: 'Split' },
+      { date: '05/02/2026', description: 'Refund', amount: -5.0, source: 'Custom', originallyPaidBy: 'Chris', paidBy: 'Split' },
+    ];
+
+    setupExpenseSelectionsMock((t) => t.paidBy as PaidBy || 'Roland');
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(transactions));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+    submitFilter('2026', '2');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('balance-section')).toHaveTextContent('Roland still owes');
+      expect(screen.getByTestId('balance-section')).toHaveTextContent('£7.50');
+    });
+  });
+
+  it('reduces Chris\'s debt when a refund is assigned fully to Chris (originally Roland-paid)', async () => {
+    // Charge fully assigned to Chris: Chris owes £20. Refund fully to Chris: -£10. Net: Chris owes £10.
+    const transactions: Transaction[] = [
+      { date: '02/02/2026', description: 'Charge', amount: 20.0, source: 'Amex', originallyPaidBy: 'Roland', paidBy: 'Chris' },
+      { date: '05/02/2026', description: 'Refund', amount: -10.0, source: 'Amex', originallyPaidBy: 'Roland', paidBy: 'Chris' },
+    ];
+
+    setupExpenseSelectionsMock((t) => t.paidBy as PaidBy || 'Roland');
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(transactions));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+    submitFilter('2026', '2');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('balance-section')).toHaveTextContent('Chris still owes');
+      expect(screen.getByTestId('balance-section')).toHaveTextContent('£10.00');
+    });
+  });
+
+  it('flips balance direction when refunds exceed charges', async () => {
+    // Roland-paid Split £4 → Chris owes £2. Refund £10 Split → Chris's owe drops to -£3. Flips: Roland owes £3.
+    const transactions: Transaction[] = [
+      { date: '02/02/2026', description: 'Charge', amount: 4.0, source: 'Amex', originallyPaidBy: 'Roland', paidBy: 'Split' },
+      { date: '05/02/2026', description: 'Big refund', amount: -10.0, source: 'Amex', originallyPaidBy: 'Roland', paidBy: 'Split' },
+    ];
+
+    setupExpenseSelectionsMock((t) => t.paidBy as PaidBy || 'Roland');
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(transactions));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+    submitFilter('2026', '2');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('balance-section')).toHaveTextContent('Roland still owes');
+      expect(screen.getByTestId('balance-section')).toHaveTextContent('£3.00');
+    });
+  });
+
+  it('renders a negative amount as -£X.XX in the transaction row', async () => {
+    const transactions: Transaction[] = [
+      { date: '05/02/2026', description: 'Refund', amount: -5.0, source: 'Amex', originallyPaidBy: 'Roland', paidBy: 'Split' },
+    ];
+
+    setupExpenseSelectionsMock((t) => t.paidBy as PaidBy || 'Roland');
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(transactions));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+    submitFilter('2026', '2');
+
+    await waitFor(() => {
+      // "-£5.00" appears in the summary totals AND in the transaction row
+      const occurrences = screen.getAllByText('-£5.00');
+      expect(occurrences.length).toBeGreaterThanOrEqual(1);
+      // Specifically verify the transaction row (in a tbody row containing the description)
+      const refundRow = screen.getByText('Refund').closest('tr')!;
+      expect(refundRow).toHaveTextContent('-£5.00');
+    });
+  });
+
+  it('renders a negative source total with minus sign in the summary', async () => {
+    // Refunds exceed charges for Amex: total goes negative
+    const transactions: Transaction[] = [
+      { date: '02/02/2026', description: 'Charge', amount: 2.0, source: 'Amex', originallyPaidBy: 'Roland', paidBy: 'Split' },
+      { date: '05/02/2026', description: 'Big refund', amount: -5.0, source: 'Amex', originallyPaidBy: 'Roland', paidBy: 'Split' },
+    ];
+
+    setupExpenseSelectionsMock((t) => t.paidBy as PaidBy || 'Roland');
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(transactions));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+    submitFilter('2026', '2');
+
+    await waitFor(() => {
+      const summary = screen.getByTestId('summary-table');
+      // Amex source row should show -£3.00 (2 + -5)
+      expect(summary).toHaveTextContent('-£3.00');
+    });
   });
 });
 
