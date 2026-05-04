@@ -4,20 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## AI Assistant Guidelines
 
-When working on this project:
-1. **Always read existing code** before making changes
-2. **Follow existing patterns** - Maintain consistency with codebase
-3. **Plan first** - For new features always make a plan first and ask for user's confirmation before executing the plan
-4. **Write tests** for new features and bug fixes
-5. **Update types** when modifying data structures
-5. **Check for existing utilities** before creating new ones
-6. **Consider performance** - Don't optimize prematurely, but be aware
-7. **Security first** - Always validate inputs and handle errors
-8. **Ask for clarification** when requirements are ambiguous
-9. **Keep changes focused** - Don't refactor unrelated code
-10. **Verify changes work** - Run relevant tests after modifications
-11. **Do not change AI assistant Guidelines** - Never change AI assistant guidelines section
-12. **Do not change styling/color theme** - Do not change it unless explicitly asked to
+1. **Plan first** - For new features always make a plan first and ask for user confirmation before executing
+2. **Write tests** for new features and bug fixes
+3. **Update types** when modifying data structures
+4. **Do not change styling/color theme** unless explicitly asked
+5. **Do not change AI assistant Guidelines** - Never change this section
 
 ## Commands
 
@@ -37,8 +28,7 @@ npx cypress run                      # Headless Cypress E2E
 
 # Code quality
 npm run lint                         # ESLint
-npm run lint:fix                     # Auto-fix lint errors
-npm run format                       # Prettier
+npm run format                       # Prettier (writes in place)
 ```
 
 ## Architecture Overview
@@ -110,9 +100,9 @@ interface Transaction {
 ```
 app/                    # Pages: layout.tsx, page.tsx, login/, transactions/
 components/ui/          # ToggleButtonGroup, Toast
-components/features/    # TransactionFilterForm
+components/features/    # TransactionFilterForm, AddTransactionPopup
 components/layouts/     # AuthHeader
-hooks/                  # use-auth, use-transactions, use-expense-selections
+hooks/                  # use-auth, use-transactions, use-expense-selections, use-save-transaction
 services/               # auth-service, transaction-service
 lib/                    # api-client, query-provider, expense-selection-storage
 types/                  # auth.ts, transaction.ts

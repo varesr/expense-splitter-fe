@@ -165,7 +165,6 @@ export function AddTransactionPopup({ year, month, onClose }: AddTransactionPopu
             >
               <option value="Roland">Roland</option>
               <option value="Chris">Chris</option>
-              <option value="Split">Split</option>
             </select>
           </div>
 
