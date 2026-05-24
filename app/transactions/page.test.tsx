@@ -607,6 +607,157 @@ describe('TransactionsPage Transaction Ordering', () => {
   });
 });
 
+describe('TransactionsPage Source Totals List', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('renders one row per distinct source with the gross summed amount', async () => {
+    const transactions: Transaction[] = [
+      { date: '15/01/2025', description: 'Charge 1', amount: 1000.0, source: 'Amex', originallyPaidBy: 'Roland' },
+      { date: '16/01/2025', description: 'Charge 2', amount: 234.56, source: 'Amex', originallyPaidBy: 'Roland' },
+      { date: '17/01/2025', description: 'Custom 1', amount: 678.9, source: 'Custom', originallyPaidBy: 'Chris' },
+    ];
+
+    setupExpenseSelectionsMock();
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(transactions));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+    submitFilter('2025', '1');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('source-totals-list')).toBeInTheDocument();
+    });
+
+    const list = screen.getByTestId('source-totals-list');
+    const items = list.querySelectorAll('li');
+    expect(items.length).toBe(2);
+    expect(list).toHaveTextContent('Amex');
+    expect(list).toHaveTextContent('£1234.56');
+    expect(list).toHaveTextContent('Custom');
+    expect(list).toHaveTextContent('£678.90');
+  });
+
+  it('orders Custom first, then alphabetical', async () => {
+    const transactions: Transaction[] = [
+      { date: '15/01/2025', description: 'A1', amount: 10.0, source: 'Amex', originallyPaidBy: 'Roland' },
+      { date: '16/01/2025', description: 'C1', amount: 20.0, source: 'Custom', originallyPaidBy: 'Chris' },
+      { date: '17/01/2025', description: 'B1', amount: 30.0, source: 'Barclays', originallyPaidBy: 'Roland' },
+    ];
+
+    setupExpenseSelectionsMock();
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(transactions));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+    submitFilter('2025', '1');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('source-totals-list')).toBeInTheDocument();
+    });
+
+    const items = screen.getByTestId('source-totals-list').querySelectorAll('li');
+    expect(items.length).toBe(3);
+    expect(items[0].textContent).toContain('Custom');
+    expect(items[1].textContent).toContain('Amex');
+    expect(items[2].textContent).toContain('Barclays');
+  });
+
+  it('renders a negative net total in red', async () => {
+    const transactions: Transaction[] = [
+      { date: '02/02/2026', description: 'Charge', amount: 5.0, source: 'Amex', originallyPaidBy: 'Roland' },
+      { date: '05/02/2026', description: 'Big refund', amount: -20.0, source: 'Amex', originallyPaidBy: 'Roland' },
+    ];
+
+    setupExpenseSelectionsMock();
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(transactions));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+    submitFilter('2026', '2');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('source-totals-list')).toBeInTheDocument();
+    });
+
+    const amountSpan = screen.getByTestId('source-totals-list').querySelector('li span:last-child');
+    expect(amountSpan).toBeTruthy();
+    expect(amountSpan!.textContent).toBe('-£15.00');
+    expect(amountSpan!.className).toContain('text-red-600');
+  });
+
+  it('still renders a row for a source with a £0.00 net total', async () => {
+    const transactions: Transaction[] = [
+      { date: '02/02/2026', description: 'Charge', amount: 10.0, source: 'Amex', originallyPaidBy: 'Roland' },
+      { date: '05/02/2026', description: 'Refund', amount: -10.0, source: 'Amex', originallyPaidBy: 'Roland' },
+    ];
+
+    setupExpenseSelectionsMock();
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(transactions));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+    submitFilter('2026', '2');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('source-totals-list')).toBeInTheDocument();
+    });
+
+    const list = screen.getByTestId('source-totals-list');
+    const items = list.querySelectorAll('li');
+    expect(items.length).toBe(1);
+    expect(items[0].textContent).toContain('Amex');
+    expect(items[0].textContent).toContain('£0.00');
+  });
+
+  it('no longer renders the "transaction(s) found" count line', async () => {
+    setupExpenseSelectionsMock();
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(mockTransactionsData));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+    submitFilter('2025', '1');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('source-totals-list')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText(/transaction\(s\) found/i)).not.toBeInTheDocument();
+  });
+
+  it('shows "Loading transactions..." while loading and hides the list', async () => {
+    setupExpenseSelectionsMock();
+    mockedUseTransactions.mockReturnValue(
+      mockTransactionsReturn({
+        isLoading: true,
+        isPending: true,
+        isFetching: true,
+        fetchStatus: 'fetching',
+        isInitialLoading: true,
+      })
+    );
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+    submitFilter('2025', '1');
+
+    await waitFor(() => {
+      expect(screen.getByText(/loading transactions/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('source-totals-list')).not.toBeInTheDocument();
+  });
+
+  it('shows "No transactions" when result is empty and hides the list', async () => {
+    setupExpenseSelectionsMock();
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess([]));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+    submitFilter('2025', '1');
+
+    await waitFor(() => {
+      // Header-level short message
+      const headerArea = screen.getByText('Transactions for January 2025').parentElement!;
+      expect(headerArea.textContent).toContain('No transactions');
+    });
+    expect(screen.queryByTestId('source-totals-list')).not.toBeInTheDocument();
+  });
+});
+
 describe('TransactionsPage Add Transaction Button', () => {
   beforeEach(() => {
     vi.resetAllMocks();

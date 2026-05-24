@@ -40,6 +40,11 @@ interface SharedSourceTotals {
   chris: number;
 }
 
+interface SourceTotal {
+  source: string;
+  total: number;
+}
+
 interface Balance {
   person: string;
   amount: number;
@@ -111,21 +116,26 @@ export default function TransactionsPage() {
     });
   }, [transactions]);
 
-  const { sharedTotals, sharedSourceTotals, balance } = useMemo(() => {
+  const { sharedTotals, sharedSourceTotals, balance, sourceTotals } = useMemo(() => {
     const emptyResult = {
       sharedTotals: { total: 0, roland: 0, chris: 0 },
       sharedSourceTotals: [] as SharedSourceTotals[],
       balance: { person: '', amount: 0 } as Balance,
+      sourceTotals: [] as SourceTotal[],
     };
 
     if (!transactions || transactions.length === 0) return emptyResult;
 
     const totals = { total: 0, roland: 0, chris: 0 };
     const bySource: Record<string, SharedSourceTotals> = {};
+    const grossBySource: Record<string, number> = {};
     let chrisOwes = 0;
     let rolandOwes = 0;
 
     transactions.forEach((transaction) => {
+      const grossSource = transaction.source || 'Unknown';
+      grossBySource[grossSource] = (grossBySource[grossSource] || 0) + transaction.amount;
+
       const originallyPaidBy = transaction.originallyPaidBy || 'Roland';
       const paidBy = getSelectionForTransaction(transaction);
 
@@ -176,10 +186,20 @@ export default function TransactionsPage() {
       return a.source.localeCompare(b.source);
     });
 
+    // Gross per-source totals — sort: Custom first, then alphabetical (mirrors transactions-table sort)
+    const sortedSourceTotalsGross: SourceTotal[] = Object.entries(grossBySource)
+      .map(([source, total]) => ({ source, total }))
+      .sort((a, b) => {
+        if (a.source === 'Custom' && b.source !== 'Custom') return -1;
+        if (a.source !== 'Custom' && b.source === 'Custom') return 1;
+        return a.source.localeCompare(b.source);
+      });
+
     return {
       sharedTotals: totals,
       sharedSourceTotals: sortedSourceTotals,
       balance,
+      sourceTotals: sortedSourceTotalsGross,
     };
   }, [transactions, getSelectionForTransaction]);
 
@@ -209,15 +229,34 @@ export default function TransactionsPage() {
                 <h3 className="text-lg font-semibold mb-2 text-stone-900 dark:text-stone-50">
                   Transactions for {monthNames[selectedFilter.month - 1]} {selectedFilter.year}
                 </h3>
-                <p className="text-stone-600 dark:text-stone-400 text-sm mb-4">
-                  {isLoading
-                    ? 'Loading transactions...'
-                    : transactions
-                    ? `${transactions.length} transaction(s) found`
-                    : 'No transactions'}
-                </p>
+                {isLoading && (
+                  <p className="text-stone-600 dark:text-stone-400 text-sm mb-4">
+                    Loading transactions...
+                  </p>
+                )}
+                {!isLoading && transactions && transactions.length === 0 && (
+                  <p className="text-stone-600 dark:text-stone-400 text-sm mb-4">
+                    No transactions
+                  </p>
+                )}
                 {!isLoading && transactions && transactions.length > 0 && (
                   <>
+                    <ul className="mb-4 text-sm max-w-xs" data-testid="source-totals-list">
+                      {sourceTotals.map((st) => (
+                        <li key={st.source} className="flex justify-between py-0.5">
+                          <span className="text-stone-700 dark:text-stone-300">{st.source}</span>
+                          <span
+                            className={
+                              st.total >= 0
+                                ? 'text-stone-900 dark:text-stone-50 font-medium'
+                                : 'text-red-600 dark:text-red-400 font-medium'
+                            }
+                          >
+                            {formatSignedAmount(st.total)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
                     <h4 className="text-sm font-medium text-stone-600 dark:text-stone-400 mb-2">Shared Expenses</h4>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm" data-testid="summary-table">
