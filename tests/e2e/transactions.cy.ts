@@ -115,8 +115,15 @@ describe('Transactions Page', () => {
         cy.contains('£80.00').should('be.visible');
       });
 
+      // Per-source gross totals list (replaces the old "X transaction(s) found" count line)
+      cy.get('[data-testid="source-totals-list"]').should('be.visible');
+      cy.get('[data-testid="source-totals-list"] li').should('have.length', 1);
+      cy.get('[data-testid="source-totals-list"]').within(() => {
+        cy.contains('li', 'Amex').should('contain.text', '£');
+      });
+      cy.contains('transaction(s) found').should('not.exist');
+
       // Verify shared expenses summary section
-      cy.contains('3 transaction(s) found').should('be.visible');
       cy.contains('Shared Expenses').should('be.visible');
       cy.get('[data-testid="summary-table"]').should('be.visible');
       cy.get('[data-testid="summary-table"]').within(() => {
@@ -193,6 +200,11 @@ describe('Transactions Page', () => {
           // Verify Custom is last source row
           cy.get('tbody tr').last().should('contain', 'Custom');
         });
+
+        // Source-totals list under the header orders Custom FIRST
+        cy.get('[data-testid="source-totals-list"] li').should('have.length', 2);
+        cy.get('[data-testid="source-totals-list"] li').eq(0).should('contain', 'Custom');
+        cy.get('[data-testid="source-totals-list"] li').eq(1).should('contain', 'Amex');
       });
 
       it('orders Custom transactions before Amex in the table', () => {
@@ -230,6 +242,11 @@ describe('Transactions Page', () => {
         .should('contain', '-£5.00')
         .and('contain', '£20.00')
         .and('not.contain', '-£20.00');
+
+      // Source-totals list shows the Amex net (20 + -5 = 15)
+      cy.get('[data-testid="source-totals-list"]').within(() => {
+        cy.contains('li', 'Amex').should('contain.text', '£15.00');
+      });
 
       // Balance: £20 Split → Chris owes £10; refund £5 Split → Chris owes £2.50 less → £7.50
       cy.get('[data-testid="balance-section"]').should('contain', 'Chris still owes');
