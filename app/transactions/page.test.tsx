@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import TransactionsPage from './page';
@@ -163,7 +163,9 @@ describe('TransactionsPage Date Formatting', () => {
     submitFilter('2025', '12');
 
     await waitFor(() => {
-      expect(screen.getByText('Mon 15/12/2025')).toBeInTheDocument();
+      // Date is rendered in both the card and table views; assert within the table.
+      const table = screen.getByTestId('transactions-table');
+      expect(within(table).getByText('Mon 15/12/2025')).toBeInTheDocument();
     });
   });
 });
@@ -231,7 +233,8 @@ describe('TransactionsPage Summary Section', () => {
 
     // Find the first row's toggle group and click the "Chris" button
     // Transactions are sorted by date descending, so first row is 17/01 (UTILITIES)
-    const toggleGroups = screen.getAllByRole('group');
+    const table = screen.getByTestId('transactions-table');
+    const toggleGroups = within(table).getAllByRole('group');
     const firstRowToggle = toggleGroups[0];
     const chrisButton = firstRowToggle.querySelector('button:last-child');
     expect(chrisButton).toBeTruthy();
@@ -359,6 +362,70 @@ describe('TransactionsPage Table Columns', () => {
     expect(rows.length).toBe(3);
     expect(rows[1].textContent).toContain('Amex');
     expect(rows[2].textContent).toContain('Custom');
+  });
+});
+
+describe('TransactionsPage Mobile Card View', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('renders a card per transaction with all five fields', async () => {
+    setupExpenseSelectionsMock();
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(mockTransactionsData));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+    submitFilter('2025', '1');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('transactions-cards')).toBeInTheDocument();
+    });
+
+    const cards = screen.getAllByTestId('transaction-card');
+    expect(cards).toHaveLength(mockTransactionsData.length);
+
+    // First sorted card is 17/01 (UTILITIES) — newest within Amex
+    const firstCard = cards[0];
+    expect(firstCard).toHaveTextContent('Fri 17/01/2025'); // date
+    expect(firstCard).toHaveTextContent('UTILITIES'); // description
+    expect(firstCard).toHaveTextContent('Amex'); // source
+    expect(firstCard).toHaveTextContent('£200.00'); // amount
+    // Paid By toggle (group role) present
+    expect(within(firstCard).getByRole('group')).toBeInTheDocument();
+  });
+
+  it('clamps long descriptions to two lines in the card view', async () => {
+    setupExpenseSelectionsMock();
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(mockTransactionsData));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+    submitFilter('2025', '1');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('transactions-cards')).toBeInTheDocument();
+    });
+
+    const firstCard = screen.getAllByTestId('transaction-card')[0];
+    const description = within(firstCard).getByText('UTILITIES');
+    expect(description).toHaveClass('line-clamp-2');
+  });
+
+  it('fires setSelectionForTransaction when a card toggle segment is clicked', async () => {
+    const { mockSetSelection } = setupExpenseSelectionsMock();
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(mockTransactionsData));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+    submitFilter('2025', '1');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('transactions-cards')).toBeInTheDocument();
+    });
+
+    const firstCard = screen.getAllByTestId('transaction-card')[0];
+    fireEvent.click(within(firstCard).getByRole('button', { name: 'Chris' }));
+
+    // First sorted transaction is the 17/01 one (mockTransactionsData[2] after sort)
+    expect(mockSetSelection).toHaveBeenCalledWith(mockTransactionsData[2], 'Chris');
   });
 });
 
@@ -526,7 +593,8 @@ describe('TransactionsPage Negative Transactions (Refunds & Cashbacks)', () => {
       const occurrences = screen.getAllByText('-£5.00');
       expect(occurrences.length).toBeGreaterThanOrEqual(1);
       // Specifically verify the transaction row (in a tbody row containing the description)
-      const refundRow = screen.getByText('Refund').closest('tr')!;
+      const table = screen.getByTestId('transactions-table');
+      const refundRow = within(table).getByText('Refund').closest('tr')!;
       expect(refundRow).toHaveTextContent('-£5.00');
     });
   });
@@ -570,8 +638,9 @@ describe('TransactionsPage Transaction Ordering', () => {
     submitFilter('2025', '1');
 
     await waitFor(() => {
-      // Find toggle button groups - each transaction row has one
-      const toggleGroups = screen.getAllByRole('group');
+      // Find toggle button groups in the table view - each transaction row has one
+      const table = screen.getByTestId('transactions-table');
+      const toggleGroups = within(table).getAllByRole('group');
       expect(toggleGroups).toHaveLength(2);
 
       // First row should be Custom item (Custom before Amex)
@@ -597,7 +666,8 @@ describe('TransactionsPage Transaction Ordering', () => {
     submitFilter('2025', '1');
 
     await waitFor(() => {
-      const toggleGroups = screen.getAllByRole('group');
+      const table = screen.getByTestId('transactions-table');
+      const toggleGroups = within(table).getAllByRole('group');
       expect(toggleGroups).toHaveLength(3);
 
       expect(toggleGroups[0].closest('tr')!).toHaveTextContent('Newest');

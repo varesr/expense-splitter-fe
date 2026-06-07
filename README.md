@@ -23,7 +23,7 @@ A modern web application for tracking and splitting expenses, built with Next.js
 - **Authentication**: User/password login with JWT tokens stored in httpOnly cookies
 - **User Display**: Logged-in user's display name shown next to the Sign Out button on all authenticated pages
 - **Route Protection**: Next.js middleware redirects unauthenticated users to login page
-- **Transaction Management**: View and filter transactions by year and month
+- **Transaction Management**: View and filter transactions by year and month. The transactions list is responsive — stacked cards on portrait phones (below the `sm`/640px breakpoint) and a full table on landscape phones and desktop, so no horizontal scrolling is needed on mobile
 - **Per-Source Totals**: Gross transaction totals listed by source (e.g. Amex, Custom) directly under the month header, with negatives shown in red
 - **Paid By Tracking**: Track who paid for each transaction (Roland, Chris, or Split) with backend API persistence and optimistic updates
 - **Refunds & Cashbacks**: Negative transaction amounts (refunds, cashbacks) are respected as signed values — they reduce the balance owed and render as `-£X.XX` in red

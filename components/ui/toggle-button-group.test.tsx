@@ -52,4 +52,25 @@ describe('ToggleButtonGroup', () => {
 
     expect(screen.getByRole('group')).toBeInTheDocument();
   });
+
+  it('is inline by default and does not stretch buttons', () => {
+    const onChange = vi.fn();
+    render(<ToggleButtonGroup value="Split" onChange={onChange} />);
+
+    const group = screen.getByRole('group');
+    expect(group).toHaveClass('inline-flex');
+    expect(group).not.toHaveClass('w-full');
+    expect(screen.getByRole('button', { name: 'Roland' })).not.toHaveClass('flex-1');
+  });
+
+  it('stretches to full width with equal-width segments when fullWidth is set', () => {
+    const onChange = vi.fn();
+    render(<ToggleButtonGroup value="Split" onChange={onChange} fullWidth />);
+
+    const group = screen.getByRole('group');
+    expect(group).toHaveClass('flex');
+    expect(group).toHaveClass('w-full');
+    expect(group).not.toHaveClass('inline-flex');
+    expect(screen.getByRole('button', { name: 'Roland' })).toHaveClass('flex-1');
+  });
 });

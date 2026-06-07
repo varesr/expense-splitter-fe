@@ -159,6 +159,44 @@ describe('Transactions Page', () => {
       cy.wait('@savePaidTransaction');
     });
 
+    describe('responsive layout', () => {
+      it('shows the card view (not the table) on a portrait phone and allows selecting a payee', () => {
+        cy.viewport(390, 844); // portrait phone
+        applyFilterWithTransactions();
+
+        // Cards are visible, the desktop table is hidden
+        cy.get('[data-testid="transactions-cards"]').should('be.visible');
+        cy.get('[data-testid="transaction-card"]').should('have.length', 3);
+        cy.get('[data-testid="transactions-table"]').should('not.be.visible');
+
+        // No horizontal overflow on the page body
+        cy.document().then((doc) => {
+          expect(doc.documentElement.scrollWidth).to.be.at.most(
+            doc.documentElement.clientWidth + 1
+          );
+        });
+
+        // Tapping a Paid By segment in a card triggers the save request
+        cy.intercept('PUT', '**/transactions/paid', { statusCode: 200 }).as(
+          'savePaidTransaction'
+        );
+        cy.get('[data-testid="transaction-card"]')
+          .eq(0)
+          .within(() => {
+            cy.get('button').contains('Chris').click();
+          });
+        cy.wait('@savePaidTransaction');
+      });
+
+      it('shows the table view (not the cards) on a landscape phone', () => {
+        cy.viewport(844, 390); // landscape phone (>= sm)
+        applyFilterWithTransactions();
+
+        cy.get('[data-testid="transactions-table"]').should('be.visible');
+        cy.get('[data-testid="transactions-cards"]').should('not.be.visible');
+      });
+    });
+
     describe('with mixed source transactions', () => {
       const mixedTransactions = [
         {
