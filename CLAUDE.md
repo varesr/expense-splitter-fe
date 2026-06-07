@@ -117,6 +117,21 @@ Unit tests are co-located with source files (`*.test.tsx`). E2E tests live in `t
 Copy `.env.example` to `.env.local`:
 ```
 NEXT_PUBLIC_API_URL=http://localhost:7272
+APP_ENV=local
 ```
 
+`APP_ENV` (`local` | `homelab`, default `local`) is a **runtime, server-side**
+env var (no `NEXT_PUBLIC_` prefix → not baked into the client bundle). It drives
+the logger's default level. Committed `.env.homelab` documents the homelab value;
+`.env*.local` stays git-ignored.
+
 Docker runs on port 7273 and uses `host.docker.internal:7272` to reach the backend.
+
+## Logging
+
+`lib/logger.ts` is a minimal **server-side** logger over `console`
+(`debug`/`info`/`warn`/`error`), level-gated. Level resolves from `LOG_LEVEL`,
+else derived from `APP_ENV` (`homelab` → `info`, otherwise `debug`). Calls below
+the active level are suppressed. Output is **stdout only** — no file/rolling logs
+in the frontend (the backend owns rolling files via logback). Do not import this
+into client components.
