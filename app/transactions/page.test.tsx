@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import TransactionsPage from './page';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useExpenseSelections } from '@/hooks/use-expense-selections';
@@ -168,6 +168,57 @@ describe('TransactionsPage Date Formatting', () => {
   });
 });
 
+describe('TransactionsPage Auto-load Current Month', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 15)); // 15 June 2026
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('fetches the current month on mount without user interaction', () => {
+    setupExpenseSelectionsMock();
+    mockedUseTransactions.mockReturnValue(mockTransactionsReturn());
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+
+    expect(mockedUseTransactions).toHaveBeenCalledWith(2026, 6, true);
+  });
+
+  it('renders transactions and current month heading without clicking Apply Filter', () => {
+    const juneTransactions: Transaction[] = [
+      {
+        date: '10/06/2026',
+        description: 'JUNE PURCHASE',
+        cardMember: 'Roland',
+        accountNumber: '-1234',
+        amount: 25.0,
+        source: 'Amex',
+        originallyPaidBy: 'Roland',
+      },
+    ];
+    setupExpenseSelectionsMock();
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess(juneTransactions));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+
+    expect(screen.getByText('Transactions for June 2026')).toBeInTheDocument();
+    expect(screen.getByText('JUNE PURCHASE')).toBeInTheDocument();
+  });
+
+  it('renders the empty state on load when the current month has no transactions', () => {
+    setupExpenseSelectionsMock();
+    mockedUseTransactions.mockReturnValue(mockTransactionsSuccess([]));
+
+    render(<TransactionsPage />, { wrapper: createWrapper() });
+
+    expect(screen.getByText('No transactions found for June 2026')).toBeInTheDocument();
+  });
+});
+
 describe('TransactionsPage Summary Section', () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -175,7 +226,7 @@ describe('TransactionsPage Summary Section', () => {
     mockedUseTransactions.mockReturnValue(mockTransactionsReturn());
   });
 
-  it('does not display summary table before filter is submitted', () => {
+  it('does not display summary table before transactions have loaded', () => {
     render(<TransactionsPage />, { wrapper: createWrapper() });
 
     expect(screen.queryByTestId('summary-table')).not.toBeInTheDocument();
