@@ -240,7 +240,7 @@ export default function TransactionsPage() {
               )}
               {!isLoading && transactions && transactions.length > 0 && (
                 <>
-                  <ul className="mb-4 text-sm max-w-xs" data-testid="source-totals-list">
+                  <ul className="mb-4 text-sm w-full sm:max-w-xs" data-testid="source-totals-list">
                     {sourceTotals.map((st) => (
                       <li key={st.source} className="flex justify-between py-0.5">
                         <span className="text-stone-700 dark:text-stone-300">{st.source}</span>
@@ -263,58 +263,58 @@ export default function TransactionsPage() {
                     <table className="w-full text-sm" data-testid="summary-table">
                       <thead>
                         <tr className="border-b border-primary-200 dark:border-primary-700">
-                          <th className="text-left py-2 pr-4 text-stone-600 dark:text-stone-400 font-medium">
+                          <th className="text-left py-2 pr-2 sm:pr-4 text-stone-600 dark:text-stone-400 font-medium">
                             Source
                           </th>
-                          <th className="text-right py-2 px-4 text-stone-600 dark:text-stone-400 font-medium">
+                          <th className="text-right py-2 px-2 sm:px-4 text-stone-600 dark:text-stone-400 font-medium">
                             Total
                           </th>
-                          <th className="text-right py-2 px-4 text-stone-600 dark:text-stone-400 font-medium">
+                          <th className="text-right py-2 px-2 sm:px-4 text-stone-600 dark:text-stone-400 font-medium">
                             Paid by Roland
                           </th>
-                          <th className="text-right py-2 pl-4 text-stone-600 dark:text-stone-400 font-medium">
+                          <th className="text-right py-2 pl-2 sm:pl-4 text-stone-600 dark:text-stone-400 font-medium">
                             Paid by Chris
                           </th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr className="border-b border-primary-100 dark:border-primary-800">
-                          <td className="py-2 pr-4 font-semibold text-stone-900 dark:text-stone-50">
+                          <td className="py-2 pr-2 sm:pr-4 font-semibold text-stone-900 dark:text-stone-50">
                             All
                           </td>
                           <td
-                            className={`py-2 px-4 text-right font-bold text-lg ${sharedTotals.total >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-red-600 dark:text-red-400'}`}
+                            className={`py-2 px-2 sm:px-4 text-right font-bold text-lg ${sharedTotals.total >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-red-600 dark:text-red-400'}`}
                           >
                             {formatSignedAmount(sharedTotals.total)}
                           </td>
                           <td
-                            className={`py-2 px-4 text-right font-bold text-lg ${sharedTotals.roland >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-red-600 dark:text-red-400'}`}
+                            className={`py-2 px-2 sm:px-4 text-right font-bold text-lg ${sharedTotals.roland >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-red-600 dark:text-red-400'}`}
                           >
                             {formatSignedAmount(sharedTotals.roland)}
                           </td>
                           <td
-                            className={`py-2 pl-4 text-right font-bold text-lg ${sharedTotals.chris >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-red-600 dark:text-red-400'}`}
+                            className={`py-2 pl-2 sm:pl-4 text-right font-bold text-lg ${sharedTotals.chris >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-red-600 dark:text-red-400'}`}
                           >
                             {formatSignedAmount(sharedTotals.chris)}
                           </td>
                         </tr>
                         {sharedSourceTotals.map((st) => (
                           <tr key={st.source}>
-                            <td className="py-1.5 pr-4 text-stone-500 dark:text-stone-400 text-xs">
+                            <td className="py-1.5 pr-2 sm:pr-4 text-stone-500 dark:text-stone-400 text-xs">
                               {st.source}
                             </td>
                             <td
-                              className={`py-1.5 px-4 text-right text-xs ${st.total >= 0 ? 'text-stone-600 dark:text-stone-300' : 'text-red-500 dark:text-red-400'}`}
+                              className={`py-1.5 px-2 sm:px-4 text-right text-xs ${st.total >= 0 ? 'text-stone-600 dark:text-stone-300' : 'text-red-500 dark:text-red-400'}`}
                             >
                               {formatSignedAmount(st.total)}
                             </td>
                             <td
-                              className={`py-1.5 px-4 text-right text-xs ${st.roland >= 0 ? 'text-stone-600 dark:text-stone-300' : 'text-red-500 dark:text-red-400'}`}
+                              className={`py-1.5 px-2 sm:px-4 text-right text-xs ${st.roland >= 0 ? 'text-stone-600 dark:text-stone-300' : 'text-red-500 dark:text-red-400'}`}
                             >
                               {formatSignedAmount(st.roland)}
                             </td>
                             <td
-                              className={`py-1.5 pl-4 text-right text-xs ${st.chris >= 0 ? 'text-stone-600 dark:text-stone-300' : 'text-red-500 dark:text-red-400'}`}
+                              className={`py-1.5 pl-2 sm:pl-4 text-right text-xs ${st.chris >= 0 ? 'text-stone-600 dark:text-stone-300' : 'text-red-500 dark:text-red-400'}`}
                             >
                               {formatSignedAmount(st.chris)}
                             </td>
@@ -361,11 +361,44 @@ export default function TransactionsPage() {
 
             {!isLoading && sortedTransactions.length > 0 && (
               <div className="bg-white dark:bg-stone-800 rounded-lg shadow-md overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table
-                    data-testid="transactions-table"
-                    className="min-w-full divide-y divide-stone-200 dark:divide-stone-700"
-                  >
+                {/* Mobile: stacked cards (portrait phones, below sm) */}
+                <div className="sm:hidden divide-y divide-stone-200 dark:divide-stone-700" data-testid="transactions-cards">
+                  {sortedTransactions.map((transaction, index) => (
+                    <div
+                      key={`${transaction.date}-${transaction.source}-${index}`}
+                      className="p-4 space-y-2"
+                      data-testid="transaction-card"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="text-sm text-stone-900 dark:text-stone-100 whitespace-nowrap">
+                          {formatDateWithDay(transaction.date)}
+                        </span>
+                        <span
+                          className={`text-sm font-medium whitespace-nowrap ${
+                            transaction.amount >= 0
+                              ? 'text-primary-600 dark:text-primary-400'
+                              : 'text-red-600 dark:text-red-400'
+                          }`}
+                        >
+                          {formatSignedAmount(transaction.amount)}
+                        </span>
+                      </div>
+                      <p className="text-sm text-stone-900 dark:text-stone-100 line-clamp-2">
+                        {transaction.description}
+                      </p>
+                      <p className="text-xs text-stone-500 dark:text-stone-400">{transaction.source}</p>
+                      <ToggleButtonGroup
+                        value={getPaidByValue(transaction)}
+                        onChange={(value) => handlePaidByChange(transaction, value)}
+                        fullWidth
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* sm and up: table (landscape phones and desktop) */}
+                <div className="hidden sm:block overflow-x-auto">
+                  <table data-testid="transactions-table" className="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
                     <thead className="bg-stone-50 dark:bg-stone-900">
                       <tr>
                         <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">

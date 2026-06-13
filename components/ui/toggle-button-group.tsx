@@ -6,15 +6,18 @@ interface ToggleButtonGroupProps {
   value: PaidBy;
   onChange: (value: PaidBy) => void;
   options?: PaidBy[];
+  /** When true, the group stretches to fill its container and each segment flexes to an equal share. */
+  fullWidth?: boolean;
 }
 
 export function ToggleButtonGroup({
   value,
   onChange,
   options = ['Roland', 'Split', 'Chris'],
+  fullWidth = false,
 }: ToggleButtonGroupProps) {
   return (
-    <div className="inline-flex rounded-md shadow-sm" role="group">
+    <div className={`${fullWidth ? 'flex w-full' : 'inline-flex'} rounded-md shadow-sm`} role="group">
       {options.map((option, index) => {
         const isSelected = value === option;
         const isFirst = index === 0;
@@ -27,6 +30,7 @@ export function ToggleButtonGroup({
             onClick={() => onChange(option)}
             className={`
               px-3 py-1.5 text-xs font-medium transition-colors duration-200
+              ${fullWidth ? 'flex-1' : ''}
               ${isFirst ? 'rounded-l-md' : ''}
               ${isLast ? 'rounded-r-md' : ''}
               ${!isFirst ? '-ml-px' : ''}
