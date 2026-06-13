@@ -7,11 +7,43 @@ describe('Transactions Page', () => {
       body: { displayName: 'Test User' },
     }).as('meRequest');
 
+    // The page auto-loads the current month on visit
+    cy.intercept('GET', '**/transactions/*/*', {
+      statusCode: 200,
+      body: [],
+    }).as('initialTransactionsRequest');
+
     cy.visit('/transactions');
   });
 
   it('displays the transactions page heading', () => {
     cy.contains('h1', 'Transactions').should('be.visible');
+  });
+
+  it('automatically loads the current month on page load without clicking Apply Filter', () => {
+    const now = new Date();
+    const monthNames = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+
+    cy.wait('@initialTransactionsRequest')
+      .its('request.url')
+      .should('include', `/transactions/${now.getFullYear()}/${now.getMonth() + 1}`);
+
+    cy.contains(`Transactions for ${monthNames[now.getMonth()]} ${now.getFullYear()}`).should(
+      'be.visible'
+    );
   });
 
   it('displays year and month selectors', () => {

@@ -51,25 +51,24 @@ interface Balance {
 }
 
 export default function TransactionsPage() {
-  const [selectedFilter, setSelectedFilter] = useState<FilterData | null>(null);
+  const [selectedFilter, setSelectedFilter] = useState<FilterData>(() => {
+    const now = new Date();
+    return { year: now.getFullYear(), month: now.getMonth() + 1 };
+  });
   const [isAddPopupOpen, setIsAddPopupOpen] = useState(false);
 
   const {
     data: transactions,
     isLoading,
     error,
-  } = useTransactions(
-    selectedFilter?.year || 0,
-    selectedFilter?.month || 0,
-    !!selectedFilter
-  );
+  } = useTransactions(selectedFilter.year, selectedFilter.month, true);
 
   const {
     getSelectionForTransaction,
     setSelectionForTransaction,
     error: saveError,
     clearError,
-  } = useExpenseSelections(transactions, selectedFilter?.year, selectedFilter?.month);
+  } = useExpenseSelections(transactions, selectedFilter.year, selectedFilter.month);
 
   const handleFilterSubmit = (data: FilterData) => {
     setSelectedFilter(data);
@@ -175,9 +174,10 @@ export default function TransactionsPage() {
     });
 
     const netBalance = chrisOwes - rolandOwes;
-    const balance: Balance = netBalance >= 0
-      ? { person: 'Chris', amount: netBalance }
-      : { person: 'Roland', amount: Math.abs(netBalance) };
+    const balance: Balance =
+      netBalance >= 0
+        ? { person: 'Chris', amount: netBalance }
+        : { person: 'Roland', amount: Math.abs(netBalance) };
 
     // Sort: Custom last, rest alphabetical
     const sortedSourceTotals = Object.values(bySource).sort((a, b) => {
@@ -215,7 +215,9 @@ export default function TransactionsPage() {
           </Link>
         </div>
 
-        <h1 className="text-4xl font-bold mb-8 text-center text-stone-900 dark:text-stone-50">Transactions</h1>
+        <h1 className="text-4xl font-bold mb-8 text-center text-stone-900 dark:text-stone-50">
+          Transactions
+        </h1>
 
         <div className="flex flex-col items-center gap-8">
           <TransactionFilterForm
@@ -223,220 +225,252 @@ export default function TransactionsPage() {
             onAddTransaction={() => setIsAddPopupOpen(true)}
           />
 
-          {selectedFilter && (
-            <div className="w-full">
-              <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-lg p-6 mb-6">
-                <h3 className="text-lg font-semibold mb-2 text-stone-900 dark:text-stone-50">
-                  Transactions for {monthNames[selectedFilter.month - 1]} {selectedFilter.year}
-                </h3>
-                {isLoading && (
-                  <p className="text-stone-600 dark:text-stone-400 text-sm mb-4">
-                    Loading transactions...
-                  </p>
-                )}
-                {!isLoading && transactions && transactions.length === 0 && (
-                  <p className="text-stone-600 dark:text-stone-400 text-sm mb-4">
-                    No transactions
-                  </p>
-                )}
-                {!isLoading && transactions && transactions.length > 0 && (
-                  <>
-                    <ul className="mb-4 text-sm w-full sm:max-w-xs" data-testid="source-totals-list">
-                      {sourceTotals.map((st) => (
-                        <li key={st.source} className="flex justify-between py-0.5">
-                          <span className="text-stone-700 dark:text-stone-300">{st.source}</span>
-                          <span
-                            className={
-                              st.total >= 0
-                                ? 'text-stone-900 dark:text-stone-50 font-medium'
-                                : 'text-red-600 dark:text-red-400 font-medium'
-                            }
-                          >
-                            {formatSignedAmount(st.total)}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                    <h4 className="text-sm font-medium text-stone-600 dark:text-stone-400 mb-2">Shared Expenses</h4>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm" data-testid="summary-table">
-                        <thead>
-                          <tr className="border-b border-primary-200 dark:border-primary-700">
-                            <th className="text-left py-2 pr-2 sm:pr-4 text-stone-600 dark:text-stone-400 font-medium">Source</th>
-                            <th className="text-right py-2 px-2 sm:px-4 text-stone-600 dark:text-stone-400 font-medium">Total</th>
-                            <th className="text-right py-2 px-2 sm:px-4 text-stone-600 dark:text-stone-400 font-medium">Paid by Roland</th>
-                            <th className="text-right py-2 pl-2 sm:pl-4 text-stone-600 dark:text-stone-400 font-medium">Paid by Chris</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr className="border-b border-primary-100 dark:border-primary-800">
-                            <td className="py-2 pr-2 sm:pr-4 font-semibold text-stone-900 dark:text-stone-50">All</td>
-                            <td className={`py-2 px-2 sm:px-4 text-right font-bold text-lg ${sharedTotals.total >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-red-600 dark:text-red-400'}`}>
-                              {formatSignedAmount(sharedTotals.total)}
-                            </td>
-                            <td className={`py-2 px-2 sm:px-4 text-right font-bold text-lg ${sharedTotals.roland >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-red-600 dark:text-red-400'}`}>
-                              {formatSignedAmount(sharedTotals.roland)}
-                            </td>
-                            <td className={`py-2 pl-2 sm:pl-4 text-right font-bold text-lg ${sharedTotals.chris >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-red-600 dark:text-red-400'}`}>
-                              {formatSignedAmount(sharedTotals.chris)}
-                            </td>
-                          </tr>
-                          {sharedSourceTotals.map((st) => (
-                            <tr key={st.source}>
-                              <td className="py-1.5 pr-2 sm:pr-4 text-stone-500 dark:text-stone-400 text-xs">{st.source}</td>
-                              <td className={`py-1.5 px-2 sm:px-4 text-right text-xs ${st.total >= 0 ? 'text-stone-600 dark:text-stone-300' : 'text-red-500 dark:text-red-400'}`}>
-                                {formatSignedAmount(st.total)}
-                              </td>
-                              <td className={`py-1.5 px-2 sm:px-4 text-right text-xs ${st.roland >= 0 ? 'text-stone-600 dark:text-stone-300' : 'text-red-500 dark:text-red-400'}`}>
-                                {formatSignedAmount(st.roland)}
-                              </td>
-                              <td className={`py-1.5 pl-2 sm:pl-4 text-right text-xs ${st.chris >= 0 ? 'text-stone-600 dark:text-stone-300' : 'text-red-500 dark:text-red-400'}`}>
-                                {formatSignedAmount(st.chris)}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    <div className="mt-4 pt-3 border-t border-primary-200 dark:border-primary-700" data-testid="balance-section">
-                      {balance.amount === 0 ? (
-                        <p className="text-sm font-semibold text-primary-600 dark:text-primary-400">All settled</p>
-                      ) : (
-                        <p className="text-sm font-semibold text-stone-900 dark:text-stone-50">
-                          {balance.person} still owes: <span className="text-primary-600 dark:text-primary-400">£{balance.amount.toFixed(2)}</span>
-                        </p>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {error && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
-                  <p className="text-red-800 dark:text-red-200 font-semibold">Error loading transactions</p>
-                  <p className="text-red-700 dark:text-red-300 text-sm mt-1">{error.message}</p>
-                </div>
-              )}
-
+          <div className="w-full">
+            <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-lg p-6 mb-6">
+              <h3 className="text-lg font-semibold mb-2 text-stone-900 dark:text-stone-50">
+                Transactions for {monthNames[selectedFilter.month - 1]} {selectedFilter.year}
+              </h3>
               {isLoading && (
-                <div className="flex justify-center items-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-                </div>
+                <p className="text-stone-600 dark:text-stone-400 text-sm mb-4">
+                  Loading transactions...
+                </p>
               )}
-
-              {!isLoading && sortedTransactions.length > 0 && (
-                <div className="bg-white dark:bg-stone-800 rounded-lg shadow-md overflow-hidden">
-                  {/* Mobile: stacked cards (portrait phones, below sm) */}
-                  <div className="sm:hidden divide-y divide-stone-200 dark:divide-stone-700" data-testid="transactions-cards">
-                    {sortedTransactions.map((transaction, index) => (
-                      <div
-                        key={`${transaction.date}-${transaction.source}-${index}`}
-                        className="p-4 space-y-2"
-                        data-testid="transaction-card"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <span className="text-sm text-stone-900 dark:text-stone-100 whitespace-nowrap">
-                            {formatDateWithDay(transaction.date)}
-                          </span>
-                          <span
-                            className={`text-sm font-medium whitespace-nowrap ${
-                              transaction.amount >= 0
-                                ? 'text-primary-600 dark:text-primary-400'
-                                : 'text-red-600 dark:text-red-400'
-                            }`}
-                          >
-                            {formatSignedAmount(transaction.amount)}
-                          </span>
-                        </div>
-                        <p className="text-sm text-stone-900 dark:text-stone-100 line-clamp-2">
-                          {transaction.description}
-                        </p>
-                        <p className="text-xs text-stone-500 dark:text-stone-400">{transaction.source}</p>
-                        <ToggleButtonGroup
-                          value={getPaidByValue(transaction)}
-                          onChange={(value) => handlePaidByChange(transaction, value)}
-                          fullWidth
-                        />
-                      </div>
+              {!isLoading && transactions && transactions.length === 0 && (
+                <p className="text-stone-600 dark:text-stone-400 text-sm mb-4">No transactions</p>
+              )}
+              {!isLoading && transactions && transactions.length > 0 && (
+                <>
+                  <ul className="mb-4 text-sm w-full sm:max-w-xs" data-testid="source-totals-list">
+                    {sourceTotals.map((st) => (
+                      <li key={st.source} className="flex justify-between py-0.5">
+                        <span className="text-stone-700 dark:text-stone-300">{st.source}</span>
+                        <span
+                          className={
+                            st.total >= 0
+                              ? 'text-stone-900 dark:text-stone-50 font-medium'
+                              : 'text-red-600 dark:text-red-400 font-medium'
+                          }
+                        >
+                          {formatSignedAmount(st.total)}
+                        </span>
+                      </li>
                     ))}
-                  </div>
-
-                  {/* sm and up: table (landscape phones and desktop) */}
-                  <div className="hidden sm:block overflow-x-auto">
-                    <table data-testid="transactions-table" className="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
-                      <thead className="bg-stone-50 dark:bg-stone-900">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">
-                            Date
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">
-                            Description
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">
+                  </ul>
+                  <h4 className="text-sm font-medium text-stone-600 dark:text-stone-400 mb-2">
+                    Shared Expenses
+                  </h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm" data-testid="summary-table">
+                      <thead>
+                        <tr className="border-b border-primary-200 dark:border-primary-700">
+                          <th className="text-left py-2 pr-2 sm:pr-4 text-stone-600 dark:text-stone-400 font-medium">
                             Source
                           </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">
-                            Amount
+                          <th className="text-right py-2 px-2 sm:px-4 text-stone-600 dark:text-stone-400 font-medium">
+                            Total
                           </th>
-                          <th className="px-6 py-3 text-center text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">
-                            Paid By
+                          <th className="text-right py-2 px-2 sm:px-4 text-stone-600 dark:text-stone-400 font-medium">
+                            Paid by Roland
+                          </th>
+                          <th className="text-right py-2 pl-2 sm:pl-4 text-stone-600 dark:text-stone-400 font-medium">
+                            Paid by Chris
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white dark:bg-stone-800 divide-y divide-stone-200 dark:divide-stone-700">
-                        {sortedTransactions.map((transaction, index) => (
-                          <tr
-                            key={`${transaction.date}-${transaction.source}-${index}`}
-                            className="hover:bg-stone-50 dark:hover:bg-stone-700"
+                      <tbody>
+                        <tr className="border-b border-primary-100 dark:border-primary-800">
+                          <td className="py-2 pr-2 sm:pr-4 font-semibold text-stone-900 dark:text-stone-50">
+                            All
+                          </td>
+                          <td
+                            className={`py-2 px-2 sm:px-4 text-right font-bold text-lg ${sharedTotals.total >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-red-600 dark:text-red-400'}`}
                           >
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900 dark:text-stone-100">
-                              {formatDateWithDay(transaction.date)}
+                            {formatSignedAmount(sharedTotals.total)}
+                          </td>
+                          <td
+                            className={`py-2 px-2 sm:px-4 text-right font-bold text-lg ${sharedTotals.roland >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-red-600 dark:text-red-400'}`}
+                          >
+                            {formatSignedAmount(sharedTotals.roland)}
+                          </td>
+                          <td
+                            className={`py-2 pl-2 sm:pl-4 text-right font-bold text-lg ${sharedTotals.chris >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-red-600 dark:text-red-400'}`}
+                          >
+                            {formatSignedAmount(sharedTotals.chris)}
+                          </td>
+                        </tr>
+                        {sharedSourceTotals.map((st) => (
+                          <tr key={st.source}>
+                            <td className="py-1.5 pr-2 sm:pr-4 text-stone-500 dark:text-stone-400 text-xs">
+                              {st.source}
                             </td>
-                            <td className="px-6 py-4 text-sm text-stone-900 dark:text-stone-100">
-                              {transaction.description}
+                            <td
+                              className={`py-1.5 px-2 sm:px-4 text-right text-xs ${st.total >= 0 ? 'text-stone-600 dark:text-stone-300' : 'text-red-500 dark:text-red-400'}`}
+                            >
+                              {formatSignedAmount(st.total)}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-700 dark:text-stone-300">
-                              {transaction.source}
+                            <td
+                              className={`py-1.5 px-2 sm:px-4 text-right text-xs ${st.roland >= 0 ? 'text-stone-600 dark:text-stone-300' : 'text-red-500 dark:text-red-400'}`}
+                            >
+                              {formatSignedAmount(st.roland)}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium">
-                              <span
-                                className={
-                                  transaction.amount >= 0
-                                    ? 'text-primary-600 dark:text-primary-400'
-                                    : 'text-red-600 dark:text-red-400'
-                                }
-                              >
-                                {formatSignedAmount(transaction.amount)}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                              <ToggleButtonGroup
-                                value={getPaidByValue(transaction)}
-                                onChange={(value) => handlePaidByChange(transaction, value)}
-                              />
+                            <td
+                              className={`py-1.5 pl-2 sm:pl-4 text-right text-xs ${st.chris >= 0 ? 'text-stone-600 dark:text-stone-300' : 'text-red-500 dark:text-red-400'}`}
+                            >
+                              {formatSignedAmount(st.chris)}
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                </div>
-              )}
-
-              {!isLoading && transactions && transactions.length === 0 && (
-                <div className="bg-stone-50 dark:bg-stone-800 rounded-lg p-8 text-center">
-                  <p className="text-stone-600 dark:text-stone-400">
-                    No transactions found for {monthNames[selectedFilter.month - 1]}{' '}
-                    {selectedFilter.year}
-                  </p>
-                </div>
+                  <div
+                    className="mt-4 pt-3 border-t border-primary-200 dark:border-primary-700"
+                    data-testid="balance-section"
+                  >
+                    {balance.amount === 0 ? (
+                      <p className="text-sm font-semibold text-primary-600 dark:text-primary-400">
+                        All settled
+                      </p>
+                    ) : (
+                      <p className="text-sm font-semibold text-stone-900 dark:text-stone-50">
+                        {balance.person} still owes:{' '}
+                        <span className="text-primary-600 dark:text-primary-400">
+                          £{balance.amount.toFixed(2)}
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                </>
               )}
             </div>
-          )}
+
+            {error && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+                <p className="text-red-800 dark:text-red-200 font-semibold">
+                  Error loading transactions
+                </p>
+                <p className="text-red-700 dark:text-red-300 text-sm mt-1">{error.message}</p>
+              </div>
+            )}
+
+            {isLoading && (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+              </div>
+            )}
+
+            {!isLoading && sortedTransactions.length > 0 && (
+              <div className="bg-white dark:bg-stone-800 rounded-lg shadow-md overflow-hidden">
+                {/* Mobile: stacked cards (portrait phones, below sm) */}
+                <div className="sm:hidden divide-y divide-stone-200 dark:divide-stone-700" data-testid="transactions-cards">
+                  {sortedTransactions.map((transaction, index) => (
+                    <div
+                      key={`${transaction.date}-${transaction.source}-${index}`}
+                      className="p-4 space-y-2"
+                      data-testid="transaction-card"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="text-sm text-stone-900 dark:text-stone-100 whitespace-nowrap">
+                          {formatDateWithDay(transaction.date)}
+                        </span>
+                        <span
+                          className={`text-sm font-medium whitespace-nowrap ${
+                            transaction.amount >= 0
+                              ? 'text-primary-600 dark:text-primary-400'
+                              : 'text-red-600 dark:text-red-400'
+                          }`}
+                        >
+                          {formatSignedAmount(transaction.amount)}
+                        </span>
+                      </div>
+                      <p className="text-sm text-stone-900 dark:text-stone-100 line-clamp-2">
+                        {transaction.description}
+                      </p>
+                      <p className="text-xs text-stone-500 dark:text-stone-400">{transaction.source}</p>
+                      <ToggleButtonGroup
+                        value={getPaidByValue(transaction)}
+                        onChange={(value) => handlePaidByChange(transaction, value)}
+                        fullWidth
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* sm and up: table (landscape phones and desktop) */}
+                <div className="hidden sm:block overflow-x-auto">
+                  <table data-testid="transactions-table" className="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
+                    <thead className="bg-stone-50 dark:bg-stone-900">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">
+                          Date
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">
+                          Description
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">
+                          Source
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">
+                          Amount
+                        </th>
+                        <th className="px-6 py-3 text-center text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">
+                          Paid By
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white dark:bg-stone-800 divide-y divide-stone-200 dark:divide-stone-700">
+                      {sortedTransactions.map((transaction, index) => (
+                        <tr
+                          key={`${transaction.date}-${transaction.source}-${index}`}
+                          className="hover:bg-stone-50 dark:hover:bg-stone-700"
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900 dark:text-stone-100">
+                            {formatDateWithDay(transaction.date)}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-stone-900 dark:text-stone-100">
+                            {transaction.description}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-700 dark:text-stone-300">
+                            {transaction.source}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium">
+                            <span
+                              className={
+                                transaction.amount >= 0
+                                  ? 'text-primary-600 dark:text-primary-400'
+                                  : 'text-red-600 dark:text-red-400'
+                              }
+                            >
+                              {formatSignedAmount(transaction.amount)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                            <ToggleButtonGroup
+                              value={getPaidByValue(transaction)}
+                              onChange={(value) => handlePaidByChange(transaction, value)}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {!isLoading && transactions && transactions.length === 0 && (
+              <div className="bg-stone-50 dark:bg-stone-800 rounded-lg p-8 text-center">
+                <p className="text-stone-600 dark:text-stone-400">
+                  No transactions found for {monthNames[selectedFilter.month - 1]}{' '}
+                  {selectedFilter.year}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
       {saveError && <Toast message={saveError} onDismiss={clearError} />}
-      {isAddPopupOpen && selectedFilter && (
+      {isAddPopupOpen && (
         <AddTransactionPopup
           year={selectedFilter.year}
           month={selectedFilter.month}

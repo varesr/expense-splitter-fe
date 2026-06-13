@@ -60,6 +60,7 @@ Cookie-based sessions via the backend. The `auth_status` cookie is the gate.
 The core feature: view monthly transactions and assign who paid.
 
 - **Filter**: `TransactionFilterForm` (year/month dropdowns via react-hook-form) → `useTransactions(year, month)` → `GET /transactions/{year}/{month}`
+- **Auto-load**: The page auto-loads the current month (browser local time) on first load — `selectedFilter` is seeded with the current year/month, so no Apply Filter click is needed; manual filtering still works.
 - **"Paid By" selection**: Each row has a `ToggleButtonGroup` with options: Roland, Split, Chris.
   - Selecting calls `useExpenseSelections().setSelectionForTransaction()` → `PUT /transactions/paid` with optimistic cache update and rollback on error.
   - Storage key format: `expense-selection:{year}:{month:2d}:{day:2d}:{amount:fixed2}` (generated in `lib/expense-selection-storage.ts`)
